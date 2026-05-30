@@ -58,7 +58,6 @@ export function AvatarStack({ names, size = 30, max = 4 }: AvatarStackProps) {
               width: size,
               height: size,
               borderRadius: size / 2,
-              fontSize: size * 0.34,
             },
           ]}
         >

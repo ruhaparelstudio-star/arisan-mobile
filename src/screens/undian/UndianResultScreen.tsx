@@ -16,7 +16,9 @@ import { SectionLabel } from '../../components/ui/SectionLabel';
 
 type Props = NativeStackScreenProps<AppStackParamList, 'UndianResult'>;
 
-const MOCK_WINNERS = [
+type Winner = { period: number; name: string; date: string; current?: boolean };
+
+const MOCK_WINNERS: Winner[] = [
   { period: 1, name: 'Budi Hartono', date: '15 Mar 2026' },
   { period: 2, name: 'Sari Wulandari', date: '15 Apr 2026' },
   { period: 3, name: 'Maya Indah', date: '15 Mei 2026' },

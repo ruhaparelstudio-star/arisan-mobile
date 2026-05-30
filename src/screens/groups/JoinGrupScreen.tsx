@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, SafeAreaView, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { AppStackParamList, AuthStackParamList } from '../../navigation/types';
+import { AppStackParamList } from '../../navigation/types';
 import { Colors } from '../../theme/colors';
 import { Fonts } from '../../theme/typography';
 import { AppBar } from '../../components/ui/AppBar';
@@ -9,9 +9,7 @@ import { Btn } from '../../components/ui/Button';
 import { Icon } from '../../components/ui/Icon';
 import { OtpBoxes } from '../../components/ui/OtpBoxes';
 
-type Props =
-  | NativeStackScreenProps<AppStackParamList, 'JoinGrup'>
-  | NativeStackScreenProps<AuthStackParamList, 'JoinGrup'>;
+type Props = NativeStackScreenProps<AppStackParamList, 'JoinGrup'>;
 
 export function JoinGrupScreen({ navigation }: Props) {
   const [code, setCode] = useState('');

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, SafeAreaView, ScrollView, ActivityIndicator } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { AppStackParamList, AuthStackParamList } from '../../navigation/types';
+import { AppStackParamList } from '../../navigation/types';
 import { Colors } from '../../theme/colors';
 import { Fonts } from '../../theme/typography';
 import { AppBar } from '../../components/ui/AppBar';
@@ -12,9 +12,7 @@ import { ListRow } from '../../components/ui/ListRow';
 import { useAuth } from '../../hooks/useAuth';
 import { getGroupByCode, joinGroup, Group } from '../../api/groups';
 
-type Props =
-  | NativeStackScreenProps<AppStackParamList, 'JoinConfirm'>
-  | NativeStackScreenProps<AuthStackParamList, 'JoinConfirm'>;
+type Props = NativeStackScreenProps<AppStackParamList, 'JoinConfirm'>;
 
 export function JoinConfirmScreen({ navigation, route }: Props) {
   const { code } = route.params;

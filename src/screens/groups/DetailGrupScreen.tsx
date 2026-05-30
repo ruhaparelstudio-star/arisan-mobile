@@ -131,11 +131,11 @@ export function DetailGrupScreen({ navigation, route }: Props) {
                 else if (a.screen === 'RequestSwap') navigation.navigate('RequestSwap', { groupId, myPeriod: 1 });
                 else if (a.screen === 'UndianPre') navigation.navigate('UndianPre', { groupId, periodId: 'p1', periodNumber: 1 });
               }}
-              style={[styles.quickBtn, a.primary && styles.quickBtnPrimary]}
-              disabled={!isOnline && a.primary}
+              style={[styles.quickBtn, 'primary' in a && a.primary && styles.quickBtnPrimary]}
+              disabled={!isOnline && 'primary' in a && a.primary}
             >
-              <Icon name={a.icon} size={22} color={a.primary ? Colors.white : Colors.ink} strokeWidth={2} />
-              <Text style={[styles.quickLabel, a.primary && styles.quickLabelPrimary]}>{a.label}</Text>
+              <Icon name={a.icon} size={22} color={'primary' in a && a.primary ? Colors.white : Colors.ink} strokeWidth={2} />
+              <Text style={[styles.quickLabel, 'primary' in a && a.primary && styles.quickLabelPrimary]}>{a.label}</Text>
             </TouchableOpacity>
           ))}
         </View>

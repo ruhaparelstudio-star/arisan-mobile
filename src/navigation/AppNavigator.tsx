@@ -26,6 +26,7 @@ import { PaymentHistoryScreen } from '../screens/payments/PaymentHistoryScreen';
 import { RequestSwapScreen } from '../screens/swaps/RequestSwapScreen';
 import { SwapStatusScreen } from '../screens/swaps/SwapStatusScreen';
 import { ActivityLogScreen } from '../screens/chat/ActivityLogScreen';
+import { SetGiliranScreen } from '../screens/groups/SetGiliranScreen';
 
 const Tab = createBottomTabNavigator<MainTabParamList>();
 const Stack = createNativeStackNavigator<AppStackParamList>();
@@ -94,6 +95,7 @@ export function AppNavigator() {
       <Stack.Screen name="RequestSwap" component={RequestSwapScreen} />
       <Stack.Screen name="SwapStatus" component={SwapStatusScreen} />
       <Stack.Screen name="ActivityLog" component={ActivityLogScreen} />
+      <Stack.Screen name="SetGiliran" component={SetGiliranScreen} />
     </Stack.Navigator>
   );
 }

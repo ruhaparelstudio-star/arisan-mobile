@@ -4,7 +4,12 @@ export type AuthStackParamList = {
   Splash: undefined;
   PhoneInput: undefined;
   OTPVerify: { phone: string };
-  LoginSuccess: { name: string | null; phone: string };
+  LoginSuccess: {
+    name: string | null;
+    phone: string;
+    token: string;
+    user: { id: string; phone: string; name: string | null };
+  };
   JoinGrup: undefined;
   JoinConfirm: { code: string };
 };
@@ -35,4 +40,5 @@ export type AppStackParamList = {
   SwapStatus: { requestId: string };
   ActivityLog: { groupId: string; groupName: string };
   PaymentHistory: { groupId: string; groupName: string };
+  SetGiliran: { groupId: string; members: Array<{ id: string; name: string; slot_order: number | null }> };
 };

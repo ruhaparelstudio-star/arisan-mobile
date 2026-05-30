@@ -17,9 +17,19 @@ import { Pill } from '../../components/ui/Pill';
 import { Field } from '../../components/ui/Field';
 import { Btn } from '../../components/ui/Button';
 import { Icon } from '../../components/ui/Icon';
-import { sendOtp } from '../../api/auth';
+import { authApi } from '../../api/auth';
+import { ApiError } from '../../api/client';
 
 type Props = NativeStackScreenProps<AuthStackParamList, 'PhoneInput'>;
+
+function mapSendOtpError(e: unknown): string {
+  if (e instanceof ApiError) {
+    if (e.status === 429) return 'Terlalu banyak percobaan. Coba lagi dalam 1 jam.';
+    if (e.status === 503) return 'Gagal mengirim OTP. Tunggu 30 detik lalu coba lagi.';
+    if (e.message) return e.message;
+  }
+  return 'Gagal mengirim kode. Coba lagi.';
+}
 
 export function PhoneInputScreen({ navigation }: Props) {
   const [phone, setPhone] = useState('');
@@ -38,10 +48,10 @@ export function PhoneInputScreen({ navigation }: Props) {
     setLoading(true);
     try {
       const fullPhone = `+62${formatted}`;
-      await sendOtp(fullPhone);
+      await authApi.sendOTP(fullPhone);
       navigation.navigate('OTPVerify', { phone: fullPhone });
-    } catch (e: any) {
-      setError(e.message ?? 'Gagal mengirim kode. Coba lagi.');
+    } catch (e) {
+      setError(mapSendOtpError(e));
     } finally {
       setLoading(false);
     }
@@ -93,7 +103,14 @@ export function PhoneInputScreen({ navigation }: Props) {
 
           <View style={styles.flex} />
 
-          <Btn full size="lg" onPress={handleSend} loading={loading} style={styles.cta}>
+          <Btn
+            full
+            size="lg"
+            onPress={handleSend}
+            loading={loading}
+            disabled={!isValid || loading}
+            style={styles.cta}
+          >
             Kirim Kode
           </Btn>
           <Text style={styles.terms}>

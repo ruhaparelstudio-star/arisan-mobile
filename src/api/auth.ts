@@ -13,19 +13,22 @@ export interface VerifyOtpResponse {
   };
 }
 
-export function sendOtp(phone: string): Promise<SendOtpResponse> {
-  return apiCall('/api/auth/send-otp', {
-    method: 'POST',
-    body: JSON.stringify({ phone }),
-  });
-}
+export const authApi = {
+  sendOTP: (phone: string): Promise<SendOtpResponse> =>
+    apiCall('/api/auth/send-otp', {
+      method: 'POST',
+      body: JSON.stringify({ phone }),
+    }),
 
-export function verifyOtp(phone: string, code: string): Promise<VerifyOtpResponse> {
-  return apiCall('/api/auth/verify-otp', {
-    method: 'POST',
-    body: JSON.stringify({ phone, code }),
-  });
-}
+  verifyOTP: (phone: string, code: string): Promise<VerifyOtpResponse> =>
+    apiCall('/api/auth/verify-otp', {
+      method: 'POST',
+      body: JSON.stringify({ phone, code }),
+    }),
+};
+
+export const sendOtp = authApi.sendOTP;
+export const verifyOtp = (phone: string, code: string) => authApi.verifyOTP(phone, code);
 
 export interface UserProfile {
   id: string;

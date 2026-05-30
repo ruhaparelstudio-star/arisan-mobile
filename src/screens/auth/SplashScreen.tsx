@@ -76,7 +76,16 @@ export function SplashScreen({ navigation }: Props) {
           onPress={() => navigation.navigate('PhoneInput')}
           style={styles.cta}
         >
-          Mulai
+          Mulai sekarang
+        </Btn>
+        <Btn
+          full
+          size="lg"
+          variant="outline"
+          onPress={() => navigation.navigate('PhoneInput')}
+          style={styles.ctaSecondary}
+        >
+          Sudah punya akun
         </Btn>
       </View>
     </SafeAreaView>
@@ -161,4 +170,5 @@ const styles = StyleSheet.create({
   dotActive: { width: 26, backgroundColor: Colors.primary },
   flex: { flex: 1 },
   cta: { marginTop: 24 },
+  ctaSecondary: { marginTop: 10 },
 });

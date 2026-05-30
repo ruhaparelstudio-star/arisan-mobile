@@ -29,8 +29,8 @@
 | Sesi | Feature | Status |
 |------|---------|--------|
 | MO-0 | Setup Scaffold | `[x]` |
-| MO-1 | Auth & Onboarding | `[ ]` |
-| MO-2 | Manajemen Grup | `[ ]` |
+| MO-1 | Auth & Onboarding | `[x]` |
+| MO-2 | Manajemen Grup | `[x]` |
 | MO-3 | Tracking Pembayaran | `[ ]` |
 | MO-4 | Sistem Undian | `[ ]` |
 | MO-5 | Tukar Giliran | `[ ]` |
@@ -73,71 +73,83 @@
 ## MO-1 — Auth & Onboarding
 
 ```
-[ ] src/api/auth.ts — sendOTP(), verifyOTP()
-[ ] src/hooks/useAuth.ts — token, user, login(), logout()
-[ ] SplashScreen.tsx
-    [ ] Logo, tagline, 2 tombol CTA
-    [ ] Semua states (lihat checklist screen)
-[ ] PhoneInputScreen.tsx
-    [ ] Prefix +62 terpisah, input angka
-    [ ] Validasi lokal format nomor
-    [ ] Loading, error, disabled state
-[ ] OTPVerifyScreen.tsx
-    [ ] 6 kotak auto-advance
-    [ ] Countdown 5 menit
-    [ ] Error pesan spesifik (salah, expired, Fonnte gagal)
-    [ ] Tombol kirim ulang (aktif 30 detik)
-[ ] LoginSuccessScreen.tsx
-    [ ] Nama + nomor dari response
-    [ ] Auto-navigate 2 detik
-[ ] JWT tersimpan di SecureStore (bukan AsyncStorage)
-[ ] Auto-login: cek token di SecureStore saat app start
-[ ] Logout: hapus SecureStore + navigate ke Splash
-[ ] Semua pesan error Bahasa Indonesia
-[ ] Cek mockup .claude/designs/ untuk semua screen ini
+[x] src/api/auth.ts — authApi.sendOTP(), authApi.verifyOTP()
+[x] src/hooks/useAuth.ts — token, user, login(), logout(), isLoading
+[x] SplashScreen.tsx
+    [x] Ilustrasi Hi-Fi, tagline, 2 tombol CTA (Mulai sekarang + Sudah punya akun outline)
+[x] PhoneInputScreen.tsx
+    [x] Prefix +62 terpisah, input angka
+    [x] Validasi lokal format nomor (9–13 digit)
+    [x] Loading, error, disabled state
+    [x] 429: "Terlalu banyak percobaan. Coba lagi dalam 1 jam."
+    [x] 503: "Gagal mengirim OTP. Tunggu 30 detik lalu coba lagi."
+[x] OTPVerifyScreen.tsx
+    [x] 6 kotak auto-advance + auto-submit saat 6 digit
+    [x] Countdown 5 menit + expired message
+    [x] Error spesifik: OTP salah + sisa percobaan, expired, 429, 503
+    [x] Tombol kirim ulang (aktif setelah 30 detik)
+[x] LoginSuccessScreen.tsx
+    [x] Nama + nomor dari response
+    [x] Tombol "Ke beranda" + auto-navigate 2 detik
+    [x] login() dipanggil di sini, navigator switch otomatis via RootNavigator
+[x] JWT tersimpan di SecureStore (bukan AsyncStorage)
+[x] Auto-login: cek token di SecureStore saat app start (isLoading)
+[x] Logout: hapus SecureStore + RootNavigator switch ke AuthNavigator
+[x] Semua pesan error Bahasa Indonesia
+[x] Mockup: tidak ada di .claude/designs/ — pakai Design System + Hi-Fi dari MO-0
 ```
 
 **Mockup tersedia:**
 > `[ ]` Ya — diikuti persis
-> `[ ]` Tidak — pakai Design System
+> `[x]` Tidak — pakai Design System (Hi-Fi dari MO-0 scaffold)
 
 **Catatan:**
-> _(isi setelah sesi)_
+> Sesi MO-1 selesai 2026-05-30. Branch: feature/mo-w02-auth.
+> Alur login: OTPVerify → navigate LoginSuccess (sebelum login()) → login() di LoginSuccess → RootNavigator switch ke AppNavigator.
+> TypeScript check: 0 errors. Tidak ada dependency baru.
 
 ---
 
 ## MO-2 — Manajemen Grup
 
 ```
-[ ] src/api/groups.ts — getMyGroups(), createGroup(), joinGroup(), dll
-[ ] src/components/GrupCard.tsx
-[ ] HomeScreen.tsx
-    [ ] List grup, skeleton loading, empty state
-    [ ] Badge "Ketua" jika user adalah ketua
-    [ ] Tombol Buat Grup + Gabung Grup
-[ ] BuatGrupScreen.tsx
-    [ ] Form: nama, nominal, frekuensi, jumlah periode, mode undian
-    [ ] Validasi lokal sebelum submit
-    [ ] Success → navigate ke DetailGrupScreen
-[ ] DetailGrupScreen.tsx
-    [ ] Info grup + invite code (jika recruiting)
-    [ ] List anggota + urutan
-    [ ] Tombol ketua: Set Giliran, Generate Invite, Bubarkan
-    [ ] Tombol anggota: Keluar Grup
-[ ] InviteScreen.tsx
-    [ ] Tampilkan kode + tombol Copy + Share
-[ ] JoinGrupScreen.tsx
-    [ ] Input 8 karakter, auto uppercase
-    [ ] Preview info grup sebelum konfirmasi
-    [ ] Error: tidak valid, penuh, limit 3 grup
-[ ] SetGiliranScreen.tsx
-    [ ] Drag & drop reorder anggota
-    [ ] Library: konfirmasi dulu dengan developer
-[ ] OfflineBanner aktif di HomeScreen dan DetailGrupScreen
+[x] src/api/groups.ts — getMyGroups(), getGroupDetail(), createGroup(), joinGroup(), getGroupByCode(), leaveGroup(), generateInvite(), setSlotOrder(), disbandGroup()
+[x] src/components/GrupCard.tsx — sudah ada dari MO-0
+[x] HomeScreen.tsx
+    [x] List grup, skeleton loading (3 item), empty state
+    [x] Badge "Ketua" tidak ditampilkan di HomeScreen list (pakai ListRow bukan GrupCard — data API tidak ada member_count/due_date)
+    [x] Tombol Buat Grup + Gabung Grup (disabled saat offline)
+    [x] OfflineBanner
+[x] BuatGrupScreen.tsx (3 langkah: Step1 nama, Step2 nominal+frekuensi+periode, Step3 mode undian)
+    [x] Validasi lokal sebelum submit (nama tidak kosong, nominal dipilih)
+    [x] Error 403 "Sudah 3 grup aktif" ditampilkan secara eksplisit
+    [x] Success → navigate ke InviteScreen
+[x] DetailGrupScreen.tsx
+    [x] Info grup + invite code dengan Copy/Share (jika status recruiting)
+    [x] List anggota + status bayar
+    [x] Ketua detection: group.created_by === user.id
+    [x] Tombol ketua: Set Giliran, Generate Invite Baru, Bubarkan Grup (+ Alert konfirmasi)
+    [x] Tombol anggota: Keluar Grup (+ Alert konfirmasi)
+    [x] OfflineBanner
+[x] InviteScreen.tsx — kode + Copy + Share + navigate ke GroupDetail
+[x] JoinGrupScreen.tsx
+    [x] Input 8 karakter (OtpBoxes), auto uppercase, tombol disabled < 8 char
+    [x] Preview info grup via JoinConfirmScreen sebelum konfirmasi
+    [x] Error: tidak valid, grup penuh, limit 3 grup (di JoinConfirmScreen)
+[~] SetGiliranScreen.tsx
+    [x] List anggota + nomor urutan, tombol panah ↑↓ untuk reorder
+    [x] Tombol "Simpan Urutan" → setSlotOrder()
+    [ ] Drag & drop — menunggu konfirmasi library dari developer
+[x] OfflineBanner aktif di HomeScreen dan DetailGrupScreen
+[x] navigation/types.ts + AppNavigator: SetGiliran terdaftar
+[x] Icon.tsx: arrowUp + arrowDown ditambahkan
 ```
 
 **Catatan:**
-> _(isi setelah sesi)_
+> Sesi MO-2 selesai 2026-05-30. Branch: feature/mo-2-groups.
+> SetGiliranScreen menggunakan tombol ↑↓ karena library drag & drop belum dikonfirmasi developer.
+> HomeScreen menggunakan ListRow (bukan GrupCard) karena API /api/groups tidak mengembalikan member_count dan due_date yang dibutuhkan GrupCard.
+> Semua pesan error dalam Bahasa Indonesia. Aksi kritis disabled saat offline.
 
 ---
 

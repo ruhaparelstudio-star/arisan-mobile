@@ -48,7 +48,11 @@ export function BuatGrupStep3Screen({ navigation, route }: Props) {
       });
       navigation.navigate('Invite', { groupId: group.id, inviteCode: group.invite_code, groupName: group.name });
     } catch (e: any) {
-      setError(e.message ?? 'Gagal membuat grup. Coba lagi.');
+      if (e.status === 403 || e.message?.includes('3')) {
+        setError('Kamu sudah punya 3 grup aktif. Selesaikan atau bubarkan salah satu dulu.');
+      } else {
+        setError(e.message ?? 'Gagal membuat grup. Coba lagi.');
+      }
     } finally {
       setLoading(false);
     }

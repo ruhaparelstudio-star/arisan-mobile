@@ -4,16 +4,34 @@ import {
   Text,
   ScrollView,
   StyleSheet,
-  SafeAreaView,
   TouchableOpacity,
   RefreshControl,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
 import { CompositeScreenProps } from '@react-navigation/native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { MainTabParamList, AppStackParamList } from '../../navigation/types';
 import { Colors } from '../../theme/colors';
 import { Fonts } from '../../theme/typography';
+
+function formatNominal(n: number): string {
+  if (n >= 1_000_000) {
+    const v = n / 1_000_000;
+    return `${Number.isInteger(v) ? v : v.toFixed(1).replace('.', ',')}jt`;
+  }
+  if (n >= 1_000) return `${Math.round(n / 1_000)}rb`;
+  return n.toLocaleString('id');
+}
+
+function groupStatusPill(status: string) {
+  switch (status) {
+    case 'active': return { tone: 'amber' as const, label: 'Aktif', dot: true };
+    case 'completed': return { tone: 'mint' as const, label: 'Selesai', dot: false };
+    case 'recruiting': return { tone: 'neutral' as const, label: 'Rekrut', dot: true };
+    default: return { tone: 'neutral' as const, label: status, dot: false };
+  }
+}
 import { AppBar } from '../../components/ui/AppBar';
 import { Card } from '../../components/ui/Card';
 import { Pill } from '../../components/ui/Pill';
@@ -75,7 +93,7 @@ export function HomeScreen({ navigation }: Props) {
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.safe}>
+      <SafeAreaView edges={['top']} style={styles.safe}>
         <AppBar large title="Beranda" />
         <ScrollView contentContainerStyle={styles.body}>
           <View style={styles.heroSkeleton} />
@@ -101,7 +119,7 @@ export function HomeScreen({ navigation }: Props) {
   }
 
   return (
-    <SafeAreaView style={styles.safe}>
+    <SafeAreaView edges={['top']} style={styles.safe}>
       <AppBar
         large
         title="Beranda"
@@ -149,12 +167,17 @@ export function HomeScreen({ navigation }: Props) {
                     size="sm"
                     variant="soft"
                     onPress={() => navigation.navigate('GroupDetail', { groupId: urgentGroup.id, groupName: urgentGroup.name })}
-                    style={{ backgroundColor: Colors.white }}
-                    textStyle={{ color: Colors.primaryInk }}
+                    style={styles.heroOutlineBtn}
+                    textStyle={styles.heroOutlineBtnText}
                   >
                     Lihat detail
                   </Btn>
-                  <Btn size="sm" variant="ghost" style={styles.paidBtn} textStyle={{ color: Colors.white }}>
+                  <Btn
+                    size="sm"
+                    variant="primary"
+                    style={styles.paidBtn}
+                    textStyle={{ color: Colors.white, fontWeight: '700' }}
+                  >
                     Sudah bayar
                   </Btn>
                 </View>
@@ -184,10 +207,10 @@ export function HomeScreen({ navigation }: Props) {
                       </View>
                     }
                     title={g.name}
-                    sub={`Periode · Rp ${g.nominal.toLocaleString('id')}`}
+                    sub={`${g.total_periods} periode · Rp ${formatNominal(g.nominal)}`}
                     onPress={() => navigation.navigate('GroupDetail', { groupId: g.id, groupName: g.name })}
                     lastChild={i === Math.min(groups.length, 3) - 1}
-                    right={<Pill tone="mint" dot>Aktif</Pill>}
+                    right={(() => { const p = groupStatusPill(g.status); return <Pill tone={p.tone} dot={p.dot}>{p.label}</Pill>; })()}
                   />
                 ))}
               </Card>
@@ -255,11 +278,13 @@ const styles = StyleSheet.create({
     borderRadius: 50, backgroundColor: 'rgba(255,255,255,0.08)',
   },
   heroLabel: { flexDirection: 'row', alignItems: 'center', gap: 7 },
-  heroLabelText: { color: 'rgba(255,255,255,0.85)', fontSize: 12, fontWeight: '600', letterSpacing: 0.3, fontFamily: Fonts.bodySemiBold },
-  heroTitle: { fontFamily: Fonts.displaySemiBold, fontSize: 21, color: Colors.white, lineHeight: 25, marginTop: 8, letterSpacing: -0.3, fontWeight: '600' },
-  heroSub: { fontFamily: Fonts.bodyRegular, fontSize: 14, color: 'rgba(255,255,255,0.9)', marginTop: 4 },
-  heroActions: { flexDirection: 'row', gap: 9, marginTop: 16 },
-  paidBtn: { borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.5)' },
+  heroLabelText: { color: 'rgba(255,255,255,0.85)', fontSize: 11.5, fontWeight: '700', letterSpacing: 0.8, fontFamily: Fonts.bodyBold, textTransform: 'uppercase' },
+  heroTitle: { fontFamily: Fonts.bodyBold, fontSize: 22, color: Colors.white, lineHeight: 28, marginTop: 8, letterSpacing: -0.4, fontWeight: '700' },
+  heroSub: { fontFamily: Fonts.bodyRegular, fontSize: 13.5, color: 'rgba(255,255,255,0.88)', marginTop: 5 },
+  heroActions: { flexDirection: 'row', gap: 10, marginTop: 18 },
+  heroOutlineBtn: { backgroundColor: 'rgba(255,255,255,0.18)', borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.45)' },
+  heroOutlineBtnText: { color: Colors.white, fontWeight: '600' },
+  paidBtn: { backgroundColor: Colors.primaryDeep, shadowColor: 'transparent', elevation: 0 },
   section: { marginBottom: 16 },
   seeAll: { fontFamily: Fonts.bodySemiBold, fontSize: 13, color: Colors.primaryInk, fontWeight: '600' },
   groupIcon: { width: 46, height: 46, borderRadius: 14, backgroundColor: Colors.primaryTint, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
@@ -269,7 +294,7 @@ const styles = StyleSheet.create({
   staleLabel: { fontFamily: Fonts.bodyRegular, fontSize: 11.5, color: Colors.muted, textAlign: 'center', marginTop: 4 },
   emptyWrap: { alignItems: 'center', paddingTop: 60, paddingBottom: 32 },
   emptyIcon: { width: 96, height: 96, borderRadius: 48, backgroundColor: Colors.primaryTint, alignItems: 'center', justifyContent: 'center', marginBottom: 24 },
-  emptyTitle: { fontFamily: Fonts.displaySemiBold, fontSize: 23, color: Colors.ink, letterSpacing: -0.4, fontWeight: '600', textAlign: 'center', marginBottom: 10 },
+  emptyTitle: { fontFamily: Fonts.bodyBold, fontSize: 23, color: Colors.ink, letterSpacing: -0.4, fontWeight: '700', textAlign: 'center', marginBottom: 10 },
   emptySub: { fontFamily: Fonts.bodyRegular, fontSize: 14.5, color: Colors.muted, lineHeight: 22, textAlign: 'center', maxWidth: 280 },
   heroSkeleton: { height: 150, borderRadius: 24, backgroundColor: Colors.surface, marginBottom: 24 },
   skeletonRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12 },

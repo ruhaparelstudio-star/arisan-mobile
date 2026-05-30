@@ -1,6 +1,5 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors } from '../../theme/colors';
 import { Fonts } from '../../theme/typography';
 import { Icon } from './Icon';
@@ -94,8 +93,10 @@ const styles = StyleSheet.create({
     fontSize: 18,
   },
   titleLarge: {
-    fontSize: 28,
-    letterSpacing: -0.5,
+    fontFamily: Fonts.bodyBold,
+    fontWeight: '700',
+    fontSize: 30,
+    letterSpacing: -0.6,
   },
   sub: {
     fontFamily: Fonts.bodyRegular,

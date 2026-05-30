@@ -215,6 +215,26 @@ git push origin --delete feature/mo-X-<nama>
 > Claude mengisi bagian ini setelah setiap sesi.
 
 ```
+[MO-6 · 2026-05-30]
+- src/api/chat.ts dibuat: ChatMessage, ActivityLogEntry types + getMessages, sendMessage, getActivityLog
+- navigation/types.ts: ketuaId ditambahkan ke Chat route params
+- DetailGrupScreen: pass group.created_by sebagai ketuaId saat navigate ke Chat
+- ChatScreen: mock dihapus, ganti dengan real API + polling 4 detik, FlatList inverted, skeleton 5 bubble, badge "Ketua" dari ketuaId, error/offline state, input disabled saat offline
+- ActivityLogScreen: MOCK_ACTIVITIES dihapus, ganti dengan API real, infinite scroll, formatTimestamp lokal ("12 Jun 2026 · 14:30"), loading/error/empty state
+- UndianResultScreen: fix navigate Chat dengan ketuaId kosong (tidak ada akses created_by di sini)
+- stream-chat-expo TIDAK diinstall (keputusan developer) — typing indicator dilewat (butuh WebSocket)
+- TypeScript: 0 errors. Tidak ada dependency baru.
+
+[MO-5 · 2026-05-30]
+- src/api/swaps.ts dibuat: Swap type + swapsApi (request, respond, approve, getMySwaps, getGroupSwaps)
+- RequestSwapScreen: mock SLOTS dihapus, diganti load real members via getGroupDetail, identifikasi user by user_id, disable past/current slots, error via Alert.alert Bahasa Indonesia
+- SwapInboxScreen: baru, list swap masuk (target_id === user.id, status pending), Terima/Tolak inline + Alert konfirmasi, pull-to-refresh, empty state, loading, error state
+- SwapApprovalScreen: baru (ketua only by navigation), list swap status target_accepted per group, Setujui (approved) / Tolak (ketua_rejected) dengan Alert konfirmasi, pull-to-refresh, loading, error state
+- navigation/types.ts: tambah SwapInbox (undefined) dan SwapApproval ({ groupId, groupName })
+- AppNavigator.tsx: registrasi SwapInboxScreen dan SwapApprovalScreen
+- Semua aksi disabled saat offline dengan tooltip Bahasa Indonesia
+- TypeScript: 0 errors. Tidak ada dependency baru.
+
 [MO-4 · 2026-05-30]
 - src/api/undian.ts dibuat: undianApi.start() POST /undian, undianApi.getHistory() GET /winners
 - UndianScreen: candidates real dari API (getGroupDetail + getHistory, filter belum menang)

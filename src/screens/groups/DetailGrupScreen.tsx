@@ -19,6 +19,7 @@ import { SkeletonBar } from '../../components/ui/SkeletonBar';
 import { useAuth } from '../../hooks/useAuth';
 import { useNetworkStatus } from '../../hooks/useNetworkStatus';
 import { getGroupDetail, GroupDetail, generateInvite, leaveGroup, disbandGroup, setTanggalPelaksanaan } from '../../api/groups';
+import { getActivityLog, ActivityLogEntry } from '../../api/chat';
 import { cache, CACHE_KEYS } from '../../utils/cache';
 
 type Props = NativeStackScreenProps<AppStackParamList, 'GroupDetail'>;
@@ -30,11 +31,18 @@ const QUICK_ACTIONS = [
   { icon: 'sparkles', label: 'Undian', screen: 'UndianPre' as const },
 ] as const;
 
-const ACTIVITY_MOCK = [
-  { icon: 'checkCircle', tone: 'mint', text: 'Konfirmasi bayar anggota', when: '14:32' },
-  { icon: 'sparkles', tone: 'mint', text: 'Undian periode baru', when: 'Kemarin' },
-  { icon: 'swap', tone: 'blue', text: 'Request tukar giliran', when: '8 Jun' },
-];
+const TONE_BG: Record<string, string> = {
+  mint: '#E6FAF5',
+  blue: '#EAF2FF',
+  amber: '#FFF7E6',
+  neutral: '#F8F8F8',
+};
+const TONE_FG: Record<string, string> = {
+  mint: '#00A87E',
+  blue: '#2D6FD6',
+  amber: '#B45309',
+  neutral: '#888888',
+};
 
 function fmtLastUpdated(d: Date): string {
   return d.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) +
@@ -52,6 +60,7 @@ export function DetailGrupScreen({ navigation, route }: Props) {
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
   const isKetua = !!group && !!user && group.created_by === user.id;
+  const [recentActivity, setRecentActivity] = useState<ActivityLogEntry[]>([]);
   const [showTanggalModal, setShowTanggalModal] = useState(false);
   const [tanggalInput, setTanggalInput] = useState('');
   const [tanggalLoading, setTanggalLoading] = useState(false);
@@ -59,8 +68,12 @@ export function DetailGrupScreen({ navigation, route }: Props) {
   const load = useCallback(async (isRefresh = false) => {
     try {
       if (token && isOnline) {
-        const data = await getGroupDetail(token, groupId);
+        const [data, actRes] = await Promise.all([
+          getGroupDetail(token, groupId),
+          getActivityLog(token, groupId, 3, 0).catch(() => ({ entries: [], has_more: false })),
+        ]);
         setGroup(data);
+        setRecentActivity(actRes.entries);
         setLastUpdated(new Date());
         await cache.set(CACHE_KEYS.groupDetail(groupId), data);
       } else {
@@ -410,15 +423,20 @@ export function DetailGrupScreen({ navigation, route }: Props) {
             Aktivitas terbaru
           </SectionLabel>
           <Card pad={6}>
-            {ACTIVITY_MOCK.map((a, i) => (
-              <View key={i} style={[styles.actRow, i < ACTIVITY_MOCK.length - 1 && styles.actBorder]}>
-                <View style={[styles.actIcon, { backgroundColor: a.tone === 'mint' ? Colors.primaryTint : a.tone === 'blue' ? '#EAF2FF' : Colors.surface }]}>
-                  <Icon name={a.icon} size={21} color={a.tone === 'mint' ? Colors.primaryInk : a.tone === 'blue' ? '#2D6FD6' : Colors.mutedStrong} />
-                </View>
-                <Text style={styles.actText}>{a.text}</Text>
-                <Text style={styles.actWhen}>{a.when}</Text>
+            {recentActivity.length === 0 ? (
+              <View style={styles.actRow}>
+                <Text style={styles.actEmpty}>Belum ada aktivitas di grup ini.</Text>
               </View>
-            ))}
+            ) : (
+              recentActivity.map((a, i) => (
+                <View key={a.id} style={[styles.actRow, i < recentActivity.length - 1 && styles.actBorder]}>
+                  <View style={[styles.actIcon, { backgroundColor: TONE_BG[a.tone] ?? Colors.surface }]}>
+                    <Icon name={a.icon} size={21} color={TONE_FG[a.tone] ?? Colors.mutedStrong} />
+                  </View>
+                  <Text style={styles.actText}>{a.text}</Text>
+                </View>
+              ))
+            )}
           </Card>
           <View style={styles.immutableNote}>
             <Icon name="lock" size={13} color={Colors.muted} />
@@ -509,7 +527,7 @@ const styles = StyleSheet.create({
   actBorder: { borderBottomWidth: 1, borderBottomColor: Colors.border },
   actIcon: { width: 44, height: 44, borderRadius: 14, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
   actText: { flex: 1, fontFamily: Fonts.bodyMedium, fontSize: 13.5, color: Colors.ink, fontWeight: '500' },
-  actWhen: { fontFamily: Fonts.bodyRegular, fontSize: 11.5, color: Colors.muted },
+  actEmpty: { flex: 1, fontFamily: Fonts.bodyRegular, fontSize: 13, color: Colors.muted, textAlign: 'center', paddingVertical: 8 },
   immutableNote: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7, marginTop: 12 },
   immutableText: { fontFamily: Fonts.bodyRegular, fontSize: 11.5, color: Colors.muted },
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'center', alignItems: 'center', padding: 24 },

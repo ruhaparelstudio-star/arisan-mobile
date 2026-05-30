@@ -215,6 +215,13 @@ git push origin --delete feature/mo-X-<nama>
 > Claude mengisi bagian ini setelah setiap sesi.
 
 ```
+[MO-7 · 2026-05-30]
+- OfflineBanner: animasi slide-down (muncul) dan slide-up (hilang) saat status jaringan berubah, pakai Animated.parallel (translateY + opacity)
+- HomeScreen: lastUpdated state, stale label "Data terakhir diperbarui: [waktu]" saat offline, tooltip "Butuh koneksi internet" di bawah CTA buttons
+- DetailGrupScreen: refactor load() ke useCallback([token, groupId, isOnline]) agar auto-refresh saat kembali online, tambah loading state + skeleton (identity/status card/quick actions/member grid), stale label, tooltip offline, perbaiki cache key dari raw string ke CACHE_KEYS.groupDetail(groupId)
+- PaymentStatusScreen: ganti ActivityIndicator dengan skeleton rows (due date + progress bar + 4 member rows)
+- TypeScript: 0 errors. Tidak ada dependency baru.
+
 [MO-6 · 2026-05-30]
 - src/api/chat.ts dibuat: ChatMessage, ActivityLogEntry types + getMessages, sendMessage, getActivityLog
 - navigation/types.ts: ketuaId ditambahkan ke Chat route params

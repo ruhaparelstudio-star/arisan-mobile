@@ -215,6 +215,14 @@ git push origin --delete feature/mo-X-<nama>
 > Claude mengisi bagian ini setelah setiap sesi.
 
 ```
+[MO-8 · 2026-05-30]
+- SplashScreen: teks consent "Dengan melanjutkan, kamu setuju dengan Kebijakan Privasi kami" + link tap → Linking.openURL(PRIVACY_POLICY_URL) di bawah CTA buttons
+- ProfileScreen: menu item "Kebijakan Privasi" di akhir MENU array, tap → Linking.openURL(PRIVACY_POLICY_URL)
+- Icon.tsx: fileText ditambahkan (Lucide file-text path)
+- EXPO_PUBLIC_PRIVACY_POLICY_URL ditambahkan ke .env.example (isi URL sebelum build)
+- E2E test, performance test, build, upload, dan monitoring = tugas manual/operational developer, bukan kode
+- TypeScript: 0 errors. Tidak ada dependency baru.
+
 [MO-7 · 2026-05-30]
 - OfflineBanner: animasi slide-down (muncul) dan slide-up (hilang) saat status jaringan berubah, pakai Animated.parallel (translateY + opacity)
 - HomeScreen: lastUpdated state, stale label "Data terakhir diperbarui: [waktu]" saat offline, tooltip "Butuh koneksi internet" di bawah CTA buttons

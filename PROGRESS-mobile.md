@@ -313,20 +313,25 @@
 ## MO-8 — Beta Launch
 
 ```
-[ ] Privacy Policy: link di onboarding dan screen profil
-[ ] E2E test manual: login → buat grup → bayar → undian
+[x] Privacy Policy: link di onboarding dan screen profil
+[ ] E2E test manual: login → buat grup → bayar → undian  ← manual, butuh device fisik
 [ ] Performance di device fisik:
-    [ ] HomeScreen load < 2 detik (4G)
-    [ ] Realtime update < 1 detik
-[ ] Firebase Crashlytics aktif
-[ ] Build APK/AAB: npx expo build:android atau EAS
-[ ] Upload ke Google Play Console (Closed Testing)
-[ ] Monitor 2 minggu: crash rate < 1%, OTP success > 95%
-[ ] NPS survey ke beta users (target > 7/10)
+    [ ] HomeScreen load < 2 detik (4G)                   ← manual, butuh device fisik
+    [ ] Realtime update < 1 detik                        ← manual, butuh Supabase aktif
+[ ] Firebase Crashlytics aktif                           ← konfigurasi post-build
+[ ] Build APK/AAB: npx expo build:android atau EAS       ← eksekusi developer
+[ ] Upload ke Google Play Console (Closed Testing)       ← eksekusi developer
+[ ] Monitor 2 minggu: crash rate < 1%, OTP success > 95% ← post-launch
+[ ] NPS survey ke beta users (target > 7/10)             ← post-launch
 ```
 
 **Catatan:**
-> _(isi setelah sesi)_
+> Sesi MO-8 selesai 2026-05-30.
+> Privacy Policy URL: EXPO_PUBLIC_PRIVACY_POLICY_URL (isi di .env sebelum build).
+> SplashScreen: teks "Dengan melanjutkan, kamu setuju dengan Kebijakan Privasi kami" di bawah CTA. Link → Linking.openURL.
+> ProfileScreen: menu item "Kebijakan Privasi" (icon fileText) → Linking.openURL. Icon fileText ditambahkan ke Icon.tsx.
+> E2E + performance + build + monitoring = manual/operational, bukan kode.
+> TypeScript: 0 errors. Tidak ada dependency baru.
 
 ---
 

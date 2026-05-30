@@ -5,7 +5,10 @@ import {
   StyleSheet,
   SafeAreaView,
   TouchableOpacity,
+  Linking,
 } from 'react-native';
+
+const PRIVACY_POLICY_URL = process.env.EXPO_PUBLIC_PRIVACY_POLICY_URL ?? '';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { AuthStackParamList } from '../../navigation/types';
 import { Colors } from '../../theme/colors';
@@ -87,6 +90,17 @@ export function SplashScreen({ navigation }: Props) {
         >
           Sudah punya akun
         </Btn>
+
+        <Text style={styles.privacyNote}>
+          Dengan melanjutkan, kamu setuju dengan{' '}
+          <Text
+            style={styles.privacyLink}
+            onPress={() => PRIVACY_POLICY_URL && Linking.openURL(PRIVACY_POLICY_URL)}
+          >
+            Kebijakan Privasi
+          </Text>{' '}
+          kami.
+        </Text>
       </View>
     </SafeAreaView>
   );
@@ -171,4 +185,17 @@ const styles = StyleSheet.create({
   flex: { flex: 1 },
   cta: { marginTop: 24 },
   ctaSecondary: { marginTop: 10 },
+  privacyNote: {
+    fontFamily: Fonts.bodyRegular,
+    fontSize: 12,
+    color: Colors.muted,
+    textAlign: 'center',
+    marginTop: 16,
+    lineHeight: 18,
+  },
+  privacyLink: {
+    color: Colors.primary,
+    fontFamily: Fonts.bodySemiBold,
+    fontWeight: '600',
+  },
 });

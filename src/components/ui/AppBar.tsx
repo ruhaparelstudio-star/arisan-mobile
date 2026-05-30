@@ -93,7 +93,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
   },
   titleLarge: {
-    fontFamily: Fonts.bodyBold,
+    fontFamily: Fonts.displayBold,
     fontWeight: '700',
     fontSize: 30,
     letterSpacing: -0.6,

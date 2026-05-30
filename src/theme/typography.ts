@@ -1,4 +1,5 @@
 export const Fonts = {
+  displayBold: 'SpaceGrotesk_700Bold',
   displaySemiBold: 'SpaceGrotesk_600SemiBold',
   displayMedium: 'SpaceGrotesk_500Medium',
   displayRegular: 'SpaceGrotesk_400Regular',

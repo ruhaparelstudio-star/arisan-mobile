@@ -7,6 +7,7 @@ import {
   SpaceGrotesk_400Regular,
   SpaceGrotesk_500Medium,
   SpaceGrotesk_600SemiBold,
+  SpaceGrotesk_700Bold,
 } from '@expo-google-fonts/space-grotesk';
 import {
   PlusJakartaSans_400Regular,
@@ -14,7 +15,9 @@ import {
   PlusJakartaSans_600SemiBold,
   PlusJakartaSans_700Bold,
 } from '@expo-google-fonts/plus-jakarta-sans';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { RootNavigator } from './src/navigation/RootNavigator';
+import { AuthProvider } from './src/context/AuthContext';
 import { Colors } from './src/theme/colors';
 
 SplashScreen.preventAutoHideAsync();
@@ -24,6 +27,7 @@ export default function App() {
     SpaceGrotesk_400Regular,
     SpaceGrotesk_500Medium,
     SpaceGrotesk_600SemiBold,
+    SpaceGrotesk_700Bold,
     PlusJakartaSans_400Regular,
     PlusJakartaSans_500Medium,
     PlusJakartaSans_600SemiBold,
@@ -41,9 +45,13 @@ export default function App() {
   }
 
   return (
-    <View style={{ flex: 1, backgroundColor: Colors.bg }} onLayout={onLayoutRootView}>
-      <StatusBar style="dark" />
-      <RootNavigator />
-    </View>
+    <SafeAreaProvider>
+      <AuthProvider>
+        <View style={{ flex: 1, backgroundColor: Colors.bg }} onLayout={onLayoutRootView}>
+          <StatusBar style="dark" />
+          <RootNavigator />
+        </View>
+      </AuthProvider>
+    </SafeAreaProvider>
   );
 }

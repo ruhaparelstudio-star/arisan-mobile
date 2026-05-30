@@ -25,15 +25,28 @@ export function getPayments(token: string, groupId: string, periodId: string): P
   return apiCall(`/api/groups/${groupId}/periods/${periodId}/payments`, { token });
 }
 
-export function confirmPayments(
+export function confirmPayment(
   token: string,
   groupId: string,
   periodId: string,
-  userIds: string[],
-): Promise<{ message: string; confirmed: number }> {
+  userId: string,
+): Promise<{ message: string }> {
   return apiCall(`/api/groups/${groupId}/periods/${periodId}/confirm`, {
     method: 'POST',
-    body: JSON.stringify({ user_ids: userIds }),
+    body: JSON.stringify({ member_id: userId }),
+    token,
+  });
+}
+
+export function cancelConfirm(
+  token: string,
+  groupId: string,
+  periodId: string,
+  userId: string,
+): Promise<{ message: string }> {
+  return apiCall(`/api/groups/${groupId}/periods/${periodId}/confirm`, {
+    method: 'DELETE',
+    body: JSON.stringify({ member_id: userId }),
     token,
   });
 }

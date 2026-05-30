@@ -224,4 +224,16 @@ git push origin --delete feature/mo-X-<nama>
 - Navigation: Tab (Beranda/Grup/Notifikasi/Profil) + Stack untuk semua sub-screens
 - repo: https://github.com/ruhaparelstudio-star/arisan-mobile.git
 - Belum: verifikasi di device fisik, npm install
+
+[MO-3 · 2026-05-30]
+- usePaymentRealtime direfactor: filter period_id (bukan group_id), terima initial: Payment[], return state
+- PaymentStatusScreen: title "Status Bayar — Periode [N]", progress bar, jatuh tempo (merah jika lewat),
+  badge "Live", list semua anggota dengan status (Lunas/Belum/Terlambat), tap→modal konfirmasi/batal (ketua only),
+  OfflineBanner, cache AsyncStorage, label "Data terakhir diperbarui" saat offline
+- PaymentHistoryScreen: accordion per periode (sort terbaru dulu), lazy-fetch payments per periode saat expand,
+  per-member status badge
+- payments.ts: confirmPayments (array) → confirmPayment (single) + cancelConfirm (single DELETE)
+- Icon.tsx: chevronUp ditambahkan
+- TypeScript: 0 errors. Tidak ada dependency baru.
+- Realtime belum ditest 2 device (butuh Supabase aktif + 2 device fisik)
 ```

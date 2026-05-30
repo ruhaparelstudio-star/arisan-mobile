@@ -215,6 +215,34 @@ git push origin --delete feature/mo-X-<nama>
 > Claude mengisi bagian ini setelah setiap sesi.
 
 ```
+[MO-09 · 2026-05-30]
+Audit gap fixes — 28 dari 34 gap diselesaikan (sprint 1-3). GAP-026 (chat tabel+endpoint) dan GAP-028 (notifikasi inbox design) ditunda karena butuh desain arsitektur baru.
+
+MOBILE FIXES:
+- auth.ts: GAP-001 unwrap { user }, GAP-002 return type updateMe, GAP-003 expo_push_token field name, hapus push_token dari UserProfile
+- groups.ts: GAP-004 unwrap { groups }, GAP-005+034 adaptGroup+adaptMember remap field names (ketua_id→created_by, frekuensi→frequency, jumlah_periode→total_periods, mode_undian→draw_mode, urutan→slot_order, users→user), GAP-006 createGroup payload remap, GAP-011 setSlotOrder URL /urutan + field urutan, GAP-033 tambah 'disbanded' ke status
+- payments.ts: GAP-013+014 fix URL prefix ke /api/payments/, GAP-015 unwrap { payments }, GAP-016 adaptPeriod (periode_ke→period_number, jatuh_tempo→due_date, status mapping), GAP-017 hapus group_id dari Payment
+- undian.ts: GAP-019+020 adaptWinner (created_at→drawn_at, periods.periode_ke→period_number, users.name→winner_name)
+- swaps.ts: GAP-022 unwrap { swap } dari POST /swaps, GAP-023 respond return type { status }, GAP-024 requester_period+target_period jadi optional
+- usePaymentRealtime.ts: GAP-018 preserve user field saat realtime update
+- BuatGrupStep3Screen: GAP-007 'offline' → 'manual'
+- DetailGrupScreen: GAP-021 pass current_period_id (real UUID) ke UndianPre dan Bayar navigation
+- RequestSwapScreen: fix key={m.user_id} (id dihapus dari GroupMember)
+- SwapApprovalScreen, SwapInboxScreen: graceful fallback untuk requester_period/target_period undefined
+
+BACKEND FIXES (di arisan-api):
+- groups: GET /code/:code (GAP-009), POST /:id/invite (GAP-010), GET /:id/periods (GAP-012), GET /:id/activity-log dengan action→icon+tone mapping (GAP-027+029)
+- groups: current_period_id + current_period di GET /:id response (GAP-008), user_id disertakan di member query
+- undian: GET /:id/winners dengan JOIN periods+users (GAP-019)
+- swaps: JOIN users!requester_id + users!target_id di GET /my dan GET /group/:id (GAP-025)
+
+TIDAK DIIMPLEMENTASIKAN (butuh desain ulang):
+- GAP-026: chat messages — butuh tabel baru + endpoint (desain REST vs realtime)
+- GAP-028: notifications inbox — butuh tabel baru (bukan notif_log yang ada)
+- GAP-030, 031, 032: medium/low priority, ditunda ke sprint berikutnya
+
+TypeScript: 0 errors. Tidak ada dependency baru.
+
 [MO-8 · 2026-05-30]
 - SplashScreen: teks consent "Dengan melanjutkan, kamu setuju dengan Kebijakan Privasi kami" + link tap → Linking.openURL(PRIVACY_POLICY_URL) di bawah CTA buttons
 - ProfileScreen: menu item "Kebijakan Privasi" di akhir MENU array, tap → Linking.openURL(PRIVACY_POLICY_URL)

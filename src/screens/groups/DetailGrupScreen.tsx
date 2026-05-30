@@ -276,10 +276,10 @@ export function DetailGrupScreen({ navigation, route }: Props) {
             <TouchableOpacity
               key={a.label}
               onPress={() => {
-                if (a.screen === 'Bayar') navigation.navigate('Bayar', { groupId, periodId: 'p1', periodNumber: 1 });
+                if (a.screen === 'Bayar') navigation.navigate('Bayar', { groupId, periodId: group?.current_period_id ?? '', periodNumber: group?.current_period ?? 1 });
                 else if (a.screen === 'Chat') navigation.navigate('Chat', { groupId, groupName, memberCount: members.length, ketuaId: group?.created_by ?? '' });
                 else if (a.screen === 'RequestSwap') navigation.navigate('RequestSwap', { groupId, myPeriod: 1 });
-                else if (a.screen === 'UndianPre') navigation.navigate('UndianPre', { groupId, periodId: 'p1', periodNumber: group?.current_period ?? 1, isKetua });
+                else if (a.screen === 'UndianPre') navigation.navigate('UndianPre', { groupId, periodId: group?.current_period_id ?? '', periodNumber: group?.current_period ?? 1, isKetua });
               }}
               style={[styles.quickBtn, 'primary' in a && a.primary && styles.quickBtnPrimary]}
               disabled={!isOnline && 'primary' in a && a.primary}
@@ -350,7 +350,7 @@ export function DetailGrupScreen({ navigation, route }: Props) {
         <View style={styles.section}>
           <SectionLabel
             right={
-              <Text style={styles.seeAll} onPress={() => navigation.navigate('Bayar', { groupId, periodId: 'p1', periodNumber: 1 })}>
+              <Text style={styles.seeAll} onPress={() => navigation.navigate('Bayar', { groupId, periodId: group?.current_period_id ?? '', periodNumber: group?.current_period ?? 1 })}>
                 Kelola
               </Text>
             }

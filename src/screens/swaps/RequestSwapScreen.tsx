@@ -126,7 +126,7 @@ export function RequestSwapScreen({ navigation, route }: Props) {
             const disabled = isPast || isMe || isCurrent;
             return (
               <TouchableOpacity
-                key={m.id}
+                key={m.user_id}
                 onPress={() => !disabled && setTarget(isTarget ? null : m)}
                 disabled={disabled}
                 style={[

@@ -74,7 +74,7 @@ export function SwapApprovalScreen({ navigation, route }: Props) {
     const label = decision === 'approved' ? 'Setujui' : 'Tolak';
     Alert.alert(
       `${label} Tukar Giliran?`,
-      `${requesterName} (P${swap.requester_period}) ↔ ${targetName} (P${swap.target_period})\n\nUrutan giliran akan berubah setelah disetujui.`,
+      `${requesterName} (P${swap.requester_period ?? '?'}) ↔ ${targetName} (P${swap.target_period ?? '?'})\n\nUrutan giliran akan berubah setelah disetujui.`,
       [
         {
           text: label,
@@ -165,7 +165,7 @@ export function SwapApprovalScreen({ navigation, route }: Props) {
                       <Text style={styles.partyName} numberOfLines={1}>
                         {requesterName}
                       </Text>
-                      <Pill tone="neutral">P{s.requester_period}</Pill>
+                      {s.requester_period != null && <Pill tone="neutral">P{s.requester_period}</Pill>}
                     </View>
 
                     <View style={styles.swapCenter}>
@@ -178,7 +178,7 @@ export function SwapApprovalScreen({ navigation, route }: Props) {
                       <Text style={styles.partyName} numberOfLines={1}>
                         {targetName}
                       </Text>
-                      <Pill tone="mint">P{s.target_period}</Pill>
+                      {s.target_period != null && <Pill tone="mint">P{s.target_period}</Pill>}
                     </View>
                   </View>
 

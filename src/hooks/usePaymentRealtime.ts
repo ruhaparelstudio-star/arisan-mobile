@@ -32,14 +32,15 @@ export function usePaymentRealtime(periodId: string, initial: Payment[]): Paymen
         { event: '*', schema: 'public', table: 'payments', filter: `period_id=eq.${periodId}` },
         (payload) => {
           setPayments((prev) => {
-            const updated = payload.new as Payment;
-            const idx = prev.findIndex((p) => p.user_id === updated.user_id);
+            const raw = payload.new as Omit<Payment, 'user'>;
+            const idx = prev.findIndex((p) => p.user_id === raw.user_id);
             if (idx >= 0) {
               const next = [...prev];
-              next[idx] = updated;
+              // GAP-018: preserve user field — realtime tidak menyertakan JOIN ke users
+              next[idx] = { ...raw, user: prev[idx].user };
               return next;
             }
-            return [...prev, updated];
+            return prev;
           });
         },
       )

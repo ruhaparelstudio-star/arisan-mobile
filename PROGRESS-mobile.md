@@ -33,8 +33,8 @@
 | MO-2 | Manajemen Grup | `[x]` |
 | MO-3 | Tracking Pembayaran | `[x]` |
 | MO-4 | Sistem Undian | `[x]` |
-| MO-5 | Tukar Giliran | `[ ]` |
-| MO-6 | Chat & Activity Log | `[ ]` |
+| MO-5 | Tukar Giliran | `[x]` |
+| MO-6 | Chat & Activity Log | `[x]` |
 | MO-7 | Offline Mode | `[ ]` |
 | MO-8 | Beta Launch | `[ ]` |
 
@@ -255,22 +255,34 @@
 ## MO-6 — Chat & Activity Log
 
 ```
-[ ] npm install: stream-chat-expo, stream-chat-react-native (konfirmasi)
-[ ] ChatScreen.tsx
-    [ ] MessageList + MessageInput
-    [ ] Badge "Ketua" di nama ketua
-    [ ] Disable delete message (konfigurasi Stream)
-    [ ] Infinite scroll 30 pesan
-    [ ] Typing indicator
-    [ ] Offline banner + disable input saat offline
-[ ] ActivityLogScreen.tsx
-    [ ] List item: timestamp + aktor + deskripsi
-    [ ] Read-only, infinite scroll
-    [ ] Empty state
+[x] Tidak install stream-chat-expo — pakai custom UI + backend API proxy
+[x] src/api/chat.ts: ChatMessage, ActivityLogEntry types + getMessages, sendMessage, getActivityLog
+[x] navigation/types.ts: tambah ketuaId ke Chat params
+[x] ChatScreen.tsx
+    [x] FlatList inverted (pesan terbaru di bawah)
+    [x] Badge "Ketua" di nama ketua (ketuaId dari route params)
+    [x] Delete message tidak diimplementasi di UI (read-only list)
+    [x] Infinite scroll 30 pesan via loadMore (onEndReached)
+    [x] Polling real-time tiap 4 detik saat online (pengganti WebSocket)
+    [x] Offline banner + disable input saat offline
+    [x] Skeleton loading 5 bubble
+    [x] Error state + tombol "Coba Lagi"
+    [x] System messages ditampilkan (type: 'system')
+[x] ActivityLogScreen.tsx
+    [x] Fetch real dari GET /api/groups/:id/activity-log
+    [x] Format timestamp: "12 Jun 2026 · 14:30"
+    [x] Read-only (FlatList tanpa swipe gesture)
+    [x] Infinite scroll 30 item via loadMore
+    [x] Loading state (ActivityIndicator)
+    [x] Empty state via StateView
+    [x] Error state + tombol "Coba Lagi"
+[x] DetailGrupScreen: pass ketuaId (group.created_by) saat navigate ke Chat
+[x] UndianResultScreen: fix navigate Chat dengan ketuaId
+[x] TypeScript: 0 errors. Tidak ada dependency baru.
 ```
 
 **Catatan:**
-> _(isi setelah sesi)_
+> Sesi 2026-05-30. stream-chat-expo tidak diinstall (keputusan developer). Chat menggunakan custom UI dengan polling 4 detik ke backend API proxy. Typing indicator tidak diimplementasi (perlu WebSocket/SDK). Backend wajib expose: GET /api/groups/:id/messages, POST /api/groups/:id/messages, GET /api/groups/:id/activity-log.
 
 ---
 

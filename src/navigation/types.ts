@@ -24,7 +24,7 @@ export type MainTabParamList = {
 export type AppStackParamList = {
   Main: NavigatorScreenParams<MainTabParamList>;
   GroupDetail: { groupId: string; groupName: string };
-  Chat: { groupId: string; groupName: string; memberCount: number };
+  Chat: { groupId: string; groupName: string; memberCount: number; ketuaId: string };
   BuatGrupStep1: undefined;
   BuatGrupStep2: { name: string };
   BuatGrupStep3: { name: string; nominal: number; frequency: string; periods: number };

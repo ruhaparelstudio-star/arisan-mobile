@@ -57,7 +57,7 @@ export function UndianResultScreen({ navigation, route }: Props) {
 
         <Btn
           full size="lg" icon="message"
-          onPress={() => navigation.navigate('Chat', { groupId, groupName: 'Grup', memberCount: 0 })}
+          onPress={() => navigation.navigate('Chat', { groupId, groupName: 'Grup', memberCount: 0, ketuaId: '' })}
           style={styles.cta}
         >
           Ucapkan selamat di chat

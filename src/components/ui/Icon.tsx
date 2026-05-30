@@ -21,6 +21,8 @@ const ICON_PATHS: Record<string, string> = {
   lock: 'M19 11H5a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-6a2 2 0 0 0-2-2ZM7 11V7a5 5 0 0 1 10 0v4',
   bank: 'M3 21h18M5 21V10M9 21V10M15 21V10M19 21V10M12 3 2 9h20L12 3Z',
   arrowRight: 'M5 12h14M13 5l7 7-7 7',
+  arrowUp: 'M12 19V5M5 12l7-7 7 7',
+  arrowDown: 'M12 5v14M19 12l-7 7-7-7',
   x: 'M18 6 6 18M6 6l12 12',
   search: 'M11 19a8 8 0 1 0 0-16 8 8 0 0 0 0 16ZM21 21l-4.3-4.3',
   qr: 'M3 3h7v7H3zM14 3h7v7h-7zM3 14h7v7H3zM14 14h3v3h-3zM20 14h1M14 20h1M20 20h1M18 18h3v3',

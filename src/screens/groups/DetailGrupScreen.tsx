@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import {
-  View, Text, ScrollView, StyleSheet, SafeAreaView, TouchableOpacity, RefreshControl,
+  View, Text, ScrollView, StyleSheet, SafeAreaView, TouchableOpacity,
+  RefreshControl, Alert, Share, Clipboard,
 } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { AppStackParamList } from '../../navigation/types';
@@ -9,13 +10,14 @@ import { Fonts } from '../../theme/typography';
 import { AppBar } from '../../components/ui/AppBar';
 import { Card } from '../../components/ui/Card';
 import { Pill } from '../../components/ui/Pill';
+import { Btn } from '../../components/ui/Button';
 import { Icon } from '../../components/ui/Icon';
 import { SectionLabel } from '../../components/ui/SectionLabel';
 import { AnggotaItem } from '../../components/AnggotaItem';
 import { OfflineBanner } from '../../components/OfflineBanner';
 import { useAuth } from '../../hooks/useAuth';
 import { useNetworkStatus } from '../../hooks/useNetworkStatus';
-import { getGroupDetail, GroupDetail } from '../../api/groups';
+import { getGroupDetail, GroupDetail, generateInvite, leaveGroup, disbandGroup } from '../../api/groups';
 import { cache } from '../../utils/cache';
 
 type Props = NativeStackScreenProps<AppStackParamList, 'GroupDetail'>;
@@ -35,10 +37,13 @@ const ACTIVITY_MOCK = [
 
 export function DetailGrupScreen({ navigation, route }: Props) {
   const { groupId, groupName } = route.params;
-  const { token } = useAuth();
+  const { token, user } = useAuth();
   const isOnline = useNetworkStatus();
   const [group, setGroup] = useState<GroupDetail | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [actionLoading, setActionLoading] = useState(false);
+
+  const isKetua = !!group && !!user && group.created_by === user.id;
 
   const load = async (isRefresh = false) => {
     try {
@@ -62,7 +67,72 @@ export function DetailGrupScreen({ navigation, route }: Props) {
 
   const onRefresh = () => { setRefreshing(true); load(true); };
 
-  const mockMembers = group?.members ?? [];
+  const handleGenerateInvite = async () => {
+    if (!token) return;
+    setActionLoading(true);
+    try {
+      const { invite_code } = await generateInvite(token, groupId);
+      navigation.navigate('Invite', { groupId, inviteCode: invite_code, groupName: group?.name ?? groupName });
+    } catch (e: any) {
+      Alert.alert('Gagal', e.message ?? 'Gagal generate kode invite.');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleLeave = () => {
+    Alert.alert(
+      'Keluar Grup',
+      `Yakin mau keluar dari "${group?.name ?? groupName}"?`,
+      [
+        { text: 'Batal', style: 'cancel' },
+        {
+          text: 'Keluar',
+          style: 'destructive',
+          onPress: async () => {
+            if (!token) return;
+            setActionLoading(true);
+            try {
+              await leaveGroup(token, groupId);
+              navigation.goBack();
+            } catch (e: any) {
+              Alert.alert('Gagal', e.message ?? 'Gagal keluar dari grup.');
+            } finally {
+              setActionLoading(false);
+            }
+          },
+        },
+      ],
+    );
+  };
+
+  const handleDisband = () => {
+    Alert.alert(
+      'Bubarkan Grup',
+      `Yakin mau membubarkan "${group?.name ?? groupName}"? Aksi ini tidak bisa dibatalkan.`,
+      [
+        { text: 'Batal', style: 'cancel' },
+        {
+          text: 'Bubarkan',
+          style: 'destructive',
+          onPress: async () => {
+            if (!token) return;
+            setActionLoading(true);
+            try {
+              await disbandGroup(token, groupId);
+              navigation.goBack();
+            } catch (e: any) {
+              Alert.alert('Gagal', e.message ?? 'Gagal membubarkan grup.');
+            } finally {
+              setActionLoading(false);
+            }
+          },
+        },
+      ],
+    );
+  };
+
+  const members = group?.members ?? [];
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -88,11 +158,39 @@ export function DetailGrupScreen({ navigation, route }: Props) {
           <View style={styles.flex}>
             <Text style={styles.groupName}>{group?.name ?? groupName}</Text>
             <Text style={styles.groupMeta}>
-              {mockMembers.length} anggota · Rp {(group?.nominal ?? 0).toLocaleString('id')} · Bulanan
+              {members.length} anggota · Rp {(group?.nominal ?? 0).toLocaleString('id')} · Bulanan
             </Text>
           </View>
-          <Pill tone="solid">Ketua</Pill>
+          {isKetua && <Pill tone="solid">Ketua</Pill>}
         </View>
+
+        {/* Invite Code (recruiting) */}
+        {group?.status === 'recruiting' && (
+          <Card accent tint pad={16} style={styles.inviteCard}>
+            <View style={styles.inviteRow}>
+              <View style={styles.flex}>
+                <Text style={styles.inviteLabel}>KODE INVITE</Text>
+                <Text style={styles.inviteCode}>{group.invite_code}</Text>
+              </View>
+              <View style={styles.inviteBtns}>
+                <TouchableOpacity
+                  onPress={() => Clipboard.setString(group.invite_code)}
+                  style={styles.inviteBtn}
+                  disabled={!isOnline}
+                >
+                  <Icon name="copy" size={18} color={Colors.primaryInk} />
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={() => Share.share({ message: `Gabung arisan "${group.name}" pakai kode: ${group.invite_code}` })}
+                  style={styles.inviteBtn}
+                  disabled={!isOnline}
+                >
+                  <Icon name="share" size={18} color={Colors.primaryInk} />
+                </TouchableOpacity>
+              </View>
+            </View>
+          </Card>
+        )}
 
         {/* Status Hero */}
         <Card accent tint pad={18} style={styles.statusCard}>
@@ -112,7 +210,7 @@ export function DetailGrupScreen({ navigation, route }: Props) {
           <View style={styles.progressWrap}>
             <View style={styles.progressHeader}>
               <Text style={styles.progressLabel}>Sudah bayar</Text>
-              <Text style={styles.progressLabel}>0 / {mockMembers.length || 12}</Text>
+              <Text style={styles.progressLabel}>0 / {members.length || 12}</Text>
             </View>
             <View style={styles.progressBg}>
               <View style={[styles.progressFill, { width: '0%' }]} />
@@ -127,7 +225,7 @@ export function DetailGrupScreen({ navigation, route }: Props) {
               key={a.label}
               onPress={() => {
                 if (a.screen === 'Bayar') navigation.navigate('Bayar', { groupId, periodId: 'p1', periodNumber: 1 });
-                else if (a.screen === 'Chat') navigation.navigate('Chat', { groupId, groupName, memberCount: mockMembers.length });
+                else if (a.screen === 'Chat') navigation.navigate('Chat', { groupId, groupName, memberCount: members.length });
                 else if (a.screen === 'RequestSwap') navigation.navigate('RequestSwap', { groupId, myPeriod: 1 });
                 else if (a.screen === 'UndianPre') navigation.navigate('UndianPre', { groupId, periodId: 'p1', periodNumber: 1 });
               }}
@@ -139,6 +237,50 @@ export function DetailGrupScreen({ navigation, route }: Props) {
             </TouchableOpacity>
           ))}
         </View>
+
+        {/* Ketua Actions */}
+        {isKetua && (
+          <View style={styles.ketuaActions}>
+            <Btn
+              full size="md" variant="outline" icon="users"
+              onPress={() => navigation.navigate('SetGiliran', { groupId, members: members.map(m => ({ id: m.user_id, name: m.user.name ?? m.user.phone, slot_order: m.slot_order })) })}
+              disabled={!isOnline || actionLoading}
+              style={styles.ketuaBtn}
+            >
+              Set Giliran
+            </Btn>
+            <Btn
+              full size="md" variant="outline" icon="share"
+              onPress={handleGenerateInvite}
+              disabled={!isOnline || actionLoading}
+              style={styles.ketuaBtn}
+            >
+              Generate Invite Baru
+            </Btn>
+            <Btn
+              full size="md" variant="outline" icon="alert"
+              onPress={handleDisband}
+              disabled={!isOnline || actionLoading}
+              style={[styles.ketuaBtn, styles.destructiveBtn]}
+              textStyle={{ color: Colors.danger }}
+            >
+              Bubarkan Grup
+            </Btn>
+          </View>
+        )}
+
+        {/* Anggota Action */}
+        {!isKetua && group && (
+          <Btn
+            full size="md" variant="outline"
+            onPress={handleLeave}
+            disabled={!isOnline || actionLoading}
+            style={[styles.leaveBtn]}
+            textStyle={{ color: Colors.danger }}
+          >
+            Keluar Grup
+          </Btn>
+        )}
 
         {/* Member Status */}
         <View style={styles.section}>
@@ -153,12 +295,12 @@ export function DetailGrupScreen({ navigation, route }: Props) {
           </SectionLabel>
           <Card>
             <View style={styles.memberGrid}>
-              {(mockMembers.length > 0 ? mockMembers : Array(8).fill({ user: { name: '?' }, id: '' })).map((m, i) => (
+              {(members.length > 0 ? members : Array(8).fill({ user: { name: '?' }, id: '' })).map((m, i) => (
                 <AnggotaItem
                   key={i}
                   name={m.user?.name ?? `A${i + 1}`}
                   status="belum"
-                  isMe={i === 0}
+                  isMe={m.user_id === user?.id}
                 />
               ))}
             </View>
@@ -201,6 +343,12 @@ const styles = StyleSheet.create({
   groupInitial: { fontFamily: Fonts.displaySemiBold, fontSize: 22, color: Colors.primaryInk, fontWeight: '600' },
   groupName: { fontFamily: Fonts.displaySemiBold, fontSize: 19, color: Colors.ink, letterSpacing: -0.3, fontWeight: '600' },
   groupMeta: { fontFamily: Fonts.bodyRegular, fontSize: 13, color: Colors.muted, marginTop: 1 },
+  inviteCard: { marginBottom: 14 },
+  inviteRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  inviteLabel: { fontFamily: Fonts.bodyBold, fontSize: 11, color: Colors.muted, letterSpacing: 1, fontWeight: '700' },
+  inviteCode: { fontFamily: Fonts.displaySemiBold, fontSize: 26, color: Colors.ink, letterSpacing: 4, marginTop: 2, fontWeight: '600' },
+  inviteBtns: { flexDirection: 'row', gap: 8 },
+  inviteBtn: { width: 40, height: 40, borderRadius: 12, backgroundColor: Colors.white, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: Colors.border },
   statusCard: { marginBottom: 16 },
   statusTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
   periodeLabel: { fontFamily: Fonts.bodyBold, fontSize: 12, color: Colors.muted, fontWeight: '700', letterSpacing: 0.3 },
@@ -214,11 +362,15 @@ const styles = StyleSheet.create({
   progressLabel: { fontFamily: Fonts.bodySemiBold, fontSize: 12, color: Colors.mutedStrong, fontWeight: '600' },
   progressBg: { height: 8, borderRadius: 4, backgroundColor: 'rgba(0,168,126,0.18)', overflow: 'hidden' },
   progressFill: { height: '100%', borderRadius: 4, backgroundColor: Colors.primary },
-  quickActions: { flexDirection: 'row', gap: 10, marginBottom: 24 },
+  quickActions: { flexDirection: 'row', gap: 10, marginBottom: 16 },
   quickBtn: { flex: 1, borderRadius: 16, padding: 13, alignItems: 'center', gap: 6, borderWidth: 1, borderColor: Colors.border, backgroundColor: Colors.card, shadowColor: '#101828', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.04, shadowRadius: 2, elevation: 1 },
   quickBtnPrimary: { backgroundColor: Colors.primary, borderWidth: 0, shadowColor: Colors.primaryShadow, shadowOffset: { width: 0, height: 8 }, shadowOpacity: 1, shadowRadius: 12, elevation: 6 },
   quickLabel: { fontFamily: Fonts.bodySemiBold, fontSize: 12, color: Colors.ink, fontWeight: '600' },
   quickLabelPrimary: { color: Colors.white },
+  ketuaActions: { gap: 8, marginBottom: 20 },
+  ketuaBtn: { borderColor: Colors.border },
+  destructiveBtn: { borderColor: Colors.dangerTint },
+  leaveBtn: { borderColor: Colors.dangerTint, marginBottom: 20 },
   section: { marginBottom: 22 },
   seeAll: { fontFamily: Fonts.bodySemiBold, fontSize: 13, color: Colors.primaryInk, fontWeight: '600' },
   memberGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 14 },

@@ -15,7 +15,7 @@ export function JoinGrupScreen({ navigation }: Props) {
   const [code, setCode] = useState('');
 
   const handleSearch = () => {
-    if (code.length < 6) return;
+    if (code.length < 8) return;
     (navigation as any).navigate('JoinConfirm', { code: code.toUpperCase() });
   };
 
@@ -45,7 +45,7 @@ export function JoinGrupScreen({ navigation }: Props) {
           <Btn
             full size="lg"
             onPress={handleSearch}
-            disabled={code.length < 6}
+            disabled={code.length < 8}
             style={styles.cta}
           >
             Cari Grup

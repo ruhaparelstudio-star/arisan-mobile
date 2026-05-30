@@ -40,4 +40,5 @@ export type AppStackParamList = {
   SwapStatus: { requestId: string };
   ActivityLog: { groupId: string; groupName: string };
   PaymentHistory: { groupId: string; groupName: string };
+  SetGiliran: { groupId: string; members: Array<{ id: string; name: string; slot_order: number | null }> };
 };

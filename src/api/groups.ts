@@ -89,3 +89,10 @@ export function setSlotOrder(
     token,
   });
 }
+
+export function disbandGroup(token: string, groupId: string): Promise<{ message: string }> {
+  return apiCall(`/api/groups/${groupId}`, {
+    method: 'DELETE',
+    token,
+  });
+}

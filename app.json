@@ -1,0 +1,36 @@
+{
+  "expo": {
+    "name": "Arisan Mobile",
+    "slug": "arisan-mobile",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#00C897"
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.ruhaparelstudio.arisan"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#00C897"
+      },
+      "package": "com.ruhaparelstudio.arisan"
+    },
+    "plugins": [
+      "expo-secure-store",
+      [
+        "expo-notifications",
+        {
+          "sounds": []
+        }
+      ]
+    ]
+  }
+}

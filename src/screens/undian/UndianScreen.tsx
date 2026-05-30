@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, ScrollView } from 'react-native';
+import React, { useCallback, useEffect, useState } from 'react';
+import { View, Text, StyleSheet, SafeAreaView, ScrollView, Alert } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { AppStackParamList } from '../../navigation/types';
 import { Colors } from '../../theme/colors';
@@ -12,47 +12,104 @@ import { Icon } from '../../components/ui/Icon';
 import { Avatar } from '../../components/ui/Avatar';
 import { SectionLabel } from '../../components/ui/SectionLabel';
 import { LoadingView } from '../../components/ui/LoadingView';
+import { StateView } from '../../components/ui/StateView';
 import { useAuth } from '../../hooks/useAuth';
 import { useNetworkStatus } from '../../hooks/useNetworkStatus';
-import { apiCall } from '../../api/client';
+import { getGroupDetail } from '../../api/groups';
+import { undianApi } from '../../api/undian';
 
 type Props = NativeStackScreenProps<AppStackParamList, 'UndianPre'>;
 
-const MOCK_CANDIDATES = ['Rina', 'Sari', 'Andi', 'Maya', 'Doni', 'Eka', 'Gita', 'Hana', 'Ika'];
+interface Candidate {
+  id: string;
+  name: string;
+}
 
 export function UndianScreen({ navigation, route }: Props) {
-  const { groupId, periodId, periodNumber } = route.params;
+  const { groupId, periodId, periodNumber, isKetua } = route.params;
   const { token } = useAuth();
   const isOnline = useNetworkStatus();
-  const [loading, setLoading] = useState(false);
+
+  const [candidates, setCandidates] = useState<Candidate[]>([]);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [loadingData, setLoadingData] = useState(true);
+  const [running, setRunning] = useState(false);
+
+  const load = useCallback(async () => {
+    if (!token) return;
+    setLoadingData(true);
+    setLoadError(null);
+    try {
+      const [group, historyRes] = await Promise.all([
+        getGroupDetail(token, groupId),
+        undianApi.getHistory(groupId, token),
+      ]);
+      const wonIds = new Set(historyRes.winners.map((w) => w.user_id));
+      const cands = group.members
+        .filter((m) => !wonIds.has(m.user_id))
+        .map((m) => ({ id: m.user_id, name: m.user.name ?? m.user.phone }));
+      setCandidates(cands);
+    } catch (e: any) {
+      setLoadError(e.message ?? 'Gagal memuat data undian. Coba lagi.');
+    } finally {
+      setLoadingData(false);
+    }
+  }, [groupId, token]);
+
+  useEffect(() => { load(); }, [load]);
 
   const handleStart = async () => {
     if (!isOnline || !token) return;
-    setLoading(true);
+    setRunning(true);
     try {
-      const result: any = await apiCall(`/api/groups/${groupId}/periods/${periodId}/draw`, {
-        method: 'POST', token,
-      });
+      const result = await undianApi.start(groupId, 'random', periodId, undefined, token);
       navigation.replace('UndianResult', {
-        groupId, periodId,
-        winnerName: result.winner_name ?? 'Pemenang',
-        winnerAmount: result.winner_amount ?? 0,
+        groupId,
+        periodId,
+        winnerName: result.winner.name,
+        winnerAmount: 0,
+        periodeKe: result.periode_ke,
       });
     } catch (e: any) {
-      navigation.navigate('UndianError', { groupId, periodId, periodNumber });
+      Alert.alert('Undian Gagal', e.message ?? 'Gagal menjalankan undian. Coba lagi.');
     } finally {
-      setLoading(false);
+      setRunning(false);
     }
   };
 
-  if (loading) {
+  if (running) {
     return (
       <SafeAreaView style={styles.safe}>
         <LoadingView
           icon="sparkles"
-          title="Server sedang mengundi"
+          title="Sedang mengundi..."
           sub="Hasil acak & adil — disiarkan ke semua anggota"
-          cycle={MOCK_CANDIDATES}
+          cycle={candidates.map((c) => c.name)}
+        />
+      </SafeAreaView>
+    );
+  }
+
+  if (loadingData) {
+    return (
+      <SafeAreaView style={styles.safe}>
+        <AppBar title={`Undian Periode ${periodNumber}`} onBack={() => navigation.goBack()} />
+        <LoadingView icon="sparkles" title="Memuat data undian..." />
+      </SafeAreaView>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <SafeAreaView style={styles.safe}>
+        <AppBar title={`Undian Periode ${periodNumber}`} onBack={() => navigation.goBack()} />
+        <StateView
+          icon="sparkles"
+          tone="danger"
+          title="Gagal memuat"
+          body={loadError}
+          primary="Coba Lagi"
+          onPrimary={load}
         />
       </SafeAreaView>
     );
@@ -62,44 +119,71 @@ export function UndianScreen({ navigation, route }: Props) {
     <SafeAreaView style={styles.safe}>
       <AppBar title={`Undian Periode ${periodNumber}`} onBack={() => navigation.goBack()} />
       <ScrollView contentContainerStyle={styles.body}>
-        <Pill tone="mint" dot style={styles.livePill}>
-          Live · anggota akan menonton
-        </Pill>
-        <Text style={styles.h1}>Siap mengundi pemenang periode {periodNumber}?</Text>
+        {isKetua && (
+          <Pill tone="mint" dot style={styles.livePill}>
+            Live · anggota akan menonton
+          </Pill>
+        )}
+
+        <Text style={styles.h1}>
+          {isKetua
+            ? `Siap mengundi pemenang periode ${periodNumber}?`
+            : `Undian Periode ${periodNumber}`}
+        </Text>
         <Text style={styles.sub}>
-          Hanya anggota yang belum pernah menang yang diundi. Hasil diproses server — adil & tidak bisa diubah.
+          {isKetua
+            ? 'Hanya anggota yang belum pernah menang yang diundi. Hasil diproses server — adil & tidak bisa diubah.'
+            : 'Berikut anggota yang belum mendapat giliran menerima arisan.'}
         </Text>
 
         <Card style={styles.candidatesCard}>
-          <SectionLabel>Calon pemenang · {MOCK_CANDIDATES.length} orang</SectionLabel>
-          <View style={styles.grid}>
-            {MOCK_CANDIDATES.map((n, i) => (
-              <View key={i} style={styles.candidateCard}>
-                <Avatar name={n} size={40} />
-                <Text style={styles.candidateName}>{n}</Text>
-              </View>
-            ))}
-          </View>
+          <SectionLabel>
+            {candidates.length > 0
+              ? `Belum mendapat giliran · ${candidates.length} orang`
+              : 'Semua anggota sudah mendapat giliran'}
+          </SectionLabel>
+          {candidates.length === 0 ? (
+            <View style={styles.emptyRow}>
+              <Icon name="checkCircle" size={20} color={Colors.primary} />
+              <Text style={styles.emptyText}>Semua anggota sudah pernah menang</Text>
+            </View>
+          ) : (
+            <View style={styles.grid}>
+              {candidates.map((c) => (
+                <View key={c.id} style={styles.candidateCard}>
+                  <Avatar name={c.name} size={40} />
+                  <Text style={styles.candidateName} numberOfLines={1}>{c.name}</Text>
+                </View>
+              ))}
+            </View>
+          )}
         </Card>
 
-        <View style={styles.infoBox}>
-          <Icon name="shield" size={20} color={Colors.primaryInk} />
-          <Text style={styles.infoText}>
-            Hasil otomatis disiarkan ke chat grup & semua anggota dapat notifikasi.
-          </Text>
-        </View>
+        {isKetua && (
+          <View style={styles.infoBox}>
+            <Icon name="shield" size={20} color={Colors.primaryInk} />
+            <Text style={styles.infoText}>
+              Hasil otomatis disiarkan ke chat grup & semua anggota dapat notifikasi.
+            </Text>
+          </View>
+        )}
 
         <View style={styles.flex} />
-        <Btn
-          full size="lg" icon="sparkles"
-          onPress={handleStart}
-          disabled={!isOnline}
-          style={styles.cta}
-        >
-          Mulai Undian
-        </Btn>
-        {!isOnline && (
-          <Text style={styles.offlineNote}>Butuh koneksi internet untuk melakukan aksi ini</Text>
+
+        {isKetua && (
+          <>
+            <Btn
+              full size="lg" icon="sparkles"
+              onPress={handleStart}
+              disabled={!isOnline || candidates.length === 0}
+              style={styles.cta}
+            >
+              Mulai Undian
+            </Btn>
+            {!isOnline && (
+              <Text style={styles.offlineNote}>Butuh koneksi internet untuk melakukan aksi ini</Text>
+            )}
+          </>
         )}
       </ScrollView>
     </SafeAreaView>
@@ -116,7 +200,9 @@ const styles = StyleSheet.create({
   candidatesCard: { marginTop: 20 },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   candidateCard: { width: '30%', aspectRatio: 3 / 4, borderRadius: 14, borderWidth: 1, borderColor: Colors.border, backgroundColor: Colors.surface, alignItems: 'center', justifyContent: 'center', gap: 8 },
-  candidateName: { fontFamily: Fonts.bodySemiBold, fontSize: 12, color: Colors.ink, fontWeight: '600' },
+  candidateName: { fontFamily: Fonts.bodySemiBold, fontSize: 12, color: Colors.ink, fontWeight: '600', textAlign: 'center', paddingHorizontal: 4 },
+  emptyRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 12 },
+  emptyText: { fontFamily: Fonts.bodyRegular, fontSize: 14, color: Colors.muted },
   infoBox: { flexDirection: 'row', alignItems: 'flex-start', gap: 11, backgroundColor: Colors.primaryTint, borderRadius: 16, padding: 14, marginTop: 14 },
   infoText: { flex: 1, fontFamily: Fonts.bodyRegular, fontSize: 12.5, color: Colors.primaryInk, lineHeight: 19 },
   cta: { marginTop: 24 },

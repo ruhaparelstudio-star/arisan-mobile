@@ -32,7 +32,7 @@
 | MO-1 | Auth & Onboarding | `[x]` |
 | MO-2 | Manajemen Grup | `[x]` |
 | MO-3 | Tracking Pembayaran | `[x]` |
-| MO-4 | Sistem Undian | `[ ]` |
+| MO-4 | Sistem Undian | `[x]` |
 | MO-5 | Tukar Giliran | `[ ]` |
 | MO-6 | Chat & Activity Log | `[ ]` |
 | MO-7 | Offline Mode | `[ ]` |
@@ -202,20 +202,37 @@
 ## MO-4 — Sistem Undian
 
 ```
-[ ] src/api/undian.ts
-[ ] UndianScreen.tsx
-    [ ] Tampilkan anggota yang belum menang
-    [ ] Tombol "Mulai Undian" — ketua only
-    [ ] Loading animasi saat proses
-    [ ] Tampilkan hasil: nama pemenang
-[ ] RiwayatPemenangScreen.tsx
-    [ ] List pemenang per periode
-    [ ] Read-only, tidak ada delete
-[ ] System message dari undian muncul di chat
+[x] src/api/undian.ts
+    [x] undianApi.start(groupId, mode, periodId, winnerId?, token?) — POST /api/groups/:id/undian
+    [x] undianApi.getHistory(groupId, token) — GET /api/groups/:id/winners
+[x] UndianScreen.tsx
+    [x] Fetch real candidates: getGroupDetail + getHistory → filter members belum menang
+    [x] Tombol "Mulai Undian" — ketua only (isKetua dari route params)
+    [x] Anggota: read-only view, tidak ada tombol mulai
+    [x] Loading spinner "Sedang mengundi..." saat proses (LoadingView + cycle nama)
+    [x] Hasil diteruskan ke UndianResult dari response API (bukan random client)
+    [x] Error state: Alert.alert (bukan navigate UndianError)
+    [x] Disabled saat offline + tooltip
+[x] RiwayatPemenangScreen.tsx
+    [x] List pemenang per periode (sort terbaru dulu)
+    [x] Read-only, tidak ada delete — ada immutable note
+    [x] Empty state: "Belum ada pemenang"
+    [x] Error state + loading skeleton
+    [x] Pull-to-refresh
+[x] UndianResultScreen.tsx: hapus MOCK_WINNERS, tambah navigasi ke RiwayatPemenang
+[x] navigation/types.ts: tambah RiwayatPemenang, isKetua di UndianPre, periodeKe di UndianResult
+[x] AppNavigator.tsx: daftarkan RiwayatPemenangScreen
+[x] DetailGrupScreen.tsx: pass isKetua saat navigate ke UndianPre
+[ ] System message dari undian muncul di chat (server-side — BE-4)
 ```
 
 **Catatan:**
-> _(isi setelah sesi)_
+> Sesi MO-4 selesai 2026-05-30. Branch: feature/mo-4-undian.
+> UndianScreen: candidates dihitung dari group members dikurangi pemenang history (2 API call paralel).
+> isKetua dipass sebagai route param dari DetailGrupScreen (sudah tersedia di sana).
+> System message di chat dihandle server-side oleh BE-4 — tidak ada logika di client.
+> UndianError dihapus dari types (tidak ada screen implementasinya), diganti Alert.alert inline.
+> TypeScript check: 0 errors. Tidak ada dependency baru.
 
 ---
 

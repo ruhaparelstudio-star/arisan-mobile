@@ -1,5 +1,7 @@
 import React from 'react';
-import { View, Text, ScrollView, StyleSheet, SafeAreaView, TouchableOpacity } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, SafeAreaView, TouchableOpacity, Linking } from 'react-native';
+
+const PRIVACY_POLICY_URL = process.env.EXPO_PUBLIC_PRIVACY_POLICY_URL ?? '';
 import { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
 import { MainTabParamList } from '../../navigation/types';
 import { Colors } from '../../theme/colors';
@@ -15,11 +17,12 @@ import { useAuth } from '../../hooks/useAuth';
 type Props = BottomTabScreenProps<MainTabParamList, 'Profil'>;
 
 const MENU = [
-  { icon: 'bank', title: 'Rekening bank', value: '' },
-  { icon: 'bell', title: 'Pengaturan notifikasi', value: '' },
-  { icon: 'lock', title: 'Keamanan & PIN', value: '' },
-  { icon: 'activity', title: 'Riwayat semua arisan', value: '' },
-  { icon: 'shield', title: 'Bantuan & dukungan', value: '' },
+  { icon: 'bank', title: 'Rekening bank', value: '', onPress: undefined as (() => void) | undefined },
+  { icon: 'bell', title: 'Pengaturan notifikasi', value: '', onPress: undefined as (() => void) | undefined },
+  { icon: 'lock', title: 'Keamanan & PIN', value: '', onPress: undefined as (() => void) | undefined },
+  { icon: 'activity', title: 'Riwayat semua arisan', value: '', onPress: undefined as (() => void) | undefined },
+  { icon: 'shield', title: 'Bantuan & dukungan', value: '', onPress: undefined as (() => void) | undefined },
+  { icon: 'fileText', title: 'Kebijakan Privasi', value: '', onPress: () => PRIVACY_POLICY_URL && Linking.openURL(PRIVACY_POLICY_URL) },
 ];
 
 export function ProfileScreen({ navigation }: Props) {
@@ -68,12 +71,13 @@ export function ProfileScreen({ navigation }: Props) {
         </Card>
 
         <Card pad={6} style={styles.menuCard}>
-          {MENU.map(({ icon, title, value }, i) => (
+          {MENU.map(({ icon, title, value, onPress }, i) => (
             <ListRow
               key={i}
               icon={icon}
               title={title}
               lastChild={i === MENU.length - 1}
+              onPress={onPress}
               right={
                 <View style={styles.menuRight}>
                   {value ? <Text style={styles.menuValue}>{value}</Text> : null}

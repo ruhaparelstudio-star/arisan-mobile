@@ -29,6 +29,8 @@ export type AppStackParamList = {
   UndianError: { groupId: string; periodId: string; periodNumber: number };
   Bayar: { groupId: string; periodId: string; periodNumber: number };
   BayarDone: { confirmedNames: string[]; amount: number };
+  JoinGrup: undefined;
+  JoinConfirm: { code: string };
   RequestSwap: { groupId: string; myPeriod: number };
   SwapStatus: { requestId: string };
   ActivityLog: { groupId: string; groupName: string };

@@ -6,6 +6,7 @@ import {
   ViewStyle,
   TextStyle,
   ActivityIndicator,
+  StyleProp,
 } from 'react-native';
 import { Colors } from '../../theme/colors';
 import { Fonts } from '../../theme/typography';
@@ -22,7 +23,7 @@ interface BtnProps {
   full?: boolean;
   icon?: string;
   iconRight?: string;
-  style?: ViewStyle;
+  style?: StyleProp<ViewStyle>;
   textStyle?: TextStyle;
   disabled?: boolean;
   loading?: boolean;

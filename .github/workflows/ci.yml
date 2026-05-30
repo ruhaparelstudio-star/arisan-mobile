@@ -17,3 +17,34 @@ jobs:
           cache: "npm"
       - run: npm ci
       - run: npm run type-check
+
+  auto-merge:
+    needs: check
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/heads/feature/')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Configure git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Merge feature branch ke develop
+        run: |
+          BRANCH="${GITHUB_REF#refs/heads/}"
+          git fetch origin
+          git checkout develop
+          git pull origin develop
+          git merge --no-ff "origin/$BRANCH" -m "Merge $BRANCH into develop [auto-ci]"
+          git push origin develop
+
+      - name: Hapus feature branch
+        run: |
+          BRANCH="${GITHUB_REF#refs/heads/}"
+          git push origin --delete "$BRANCH"

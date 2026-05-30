@@ -55,7 +55,7 @@
 [x] .env.example lengkap
 [x] CLAUDE.md di root repo
 [x] Navigation skeleton: RootNavigator + AuthNavigator + AppNavigator
-[ ] Verifikasi: npx expo run:android --device berhasil di device
+[x] Verifikasi: npx expo run:android --device berhasil di device
 [x] GitHub Actions: ci.yml
 ```
 
@@ -64,7 +64,7 @@
 > Expo SDK: ~52.0.0. Font: Space Grotesk + Plus Jakarta Sans via @expo-google-fonts.
 > Semua screens dari Hi-Fi design diimplementasikan: 19 screens + shared UI components.
 > react-native-svg digunakan untuk custom stroke icon set (Lucide-style) dari design.
-> Verifikasi di device belum dilakukan — perlu `npm install` dan `npx expo run:android --device`.
+> Verifikasi di device berhasil 2026-05-30: Redmi Note 8, Android Bundled 14309ms, tidak ada error merah.
 > Repo: https://github.com/ruhaparelstudio-star/arisan-mobile.git
 > Branch: main. Commit: "feat(mo): MO-0 initial mobile scaffold with Hi-Fi design implementation"
 

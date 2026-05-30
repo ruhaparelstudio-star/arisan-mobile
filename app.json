@@ -30,7 +30,8 @@
         {
           "sounds": []
         }
-      ]
+      ],
+      "expo-asset"
     ]
   }
 }

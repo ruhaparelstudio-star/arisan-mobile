@@ -39,20 +39,28 @@ export function HomeScreen({ navigation }: Props) {
   const [groups, setGroups] = useState<Group[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
   const loadGroups = useCallback(async (isRefresh = false) => {
     try {
       if (isOnline && token) {
         const data = await getMyGroups(token);
         setGroups(data);
+        setLastUpdated(new Date());
         await cache.set(CACHE_KEYS.GROUPS_LIST, data);
       } else {
         const cached = await cache.get<Group[]>(CACHE_KEYS.GROUPS_LIST);
-        if (cached) setGroups(cached.data);
+        if (cached) {
+          setGroups(cached.data);
+          setLastUpdated(new Date());
+        }
       }
     } catch {
       const cached = await cache.get<Group[]>(CACHE_KEYS.GROUPS_LIST);
-      if (cached) setGroups(cached.data);
+      if (cached) {
+        setGroups(cached.data);
+        setLastUpdated(new Date());
+      }
     } finally {
       setLoading(false);
       if (isRefresh) setRefreshing(false);
@@ -207,6 +215,14 @@ export function HomeScreen({ navigation }: Props) {
             Gabung kode
           </Btn>
         </View>
+        {!isOnline && (
+          <Text style={styles.offlineHint}>Butuh koneksi internet untuk melakukan aksi ini.</Text>
+        )}
+        {!isOnline && lastUpdated && (
+          <Text style={styles.staleLabel}>
+            Data terakhir diperbarui: {lastUpdated.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}, {lastUpdated.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })}
+          </Text>
+        )}
       </ScrollView>
     </SafeAreaView>
   );
@@ -249,6 +265,8 @@ const styles = StyleSheet.create({
   groupIcon: { width: 46, height: 46, borderRadius: 14, backgroundColor: Colors.primaryTint, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
   groupInitial: { fontFamily: Fonts.displaySemiBold, fontSize: 18, color: Colors.primaryInk, fontWeight: '600' },
   ctaRow: { flexDirection: 'row', gap: 10, marginTop: 2 },
+  offlineHint: { fontFamily: Fonts.bodyRegular, fontSize: 12, color: Colors.muted, textAlign: 'center', marginTop: 8 },
+  staleLabel: { fontFamily: Fonts.bodyRegular, fontSize: 11.5, color: Colors.muted, textAlign: 'center', marginTop: 4 },
   emptyWrap: { alignItems: 'center', paddingTop: 60, paddingBottom: 32 },
   emptyIcon: { width: 96, height: 96, borderRadius: 48, backgroundColor: Colors.primaryTint, alignItems: 'center', justifyContent: 'center', marginBottom: 24 },
   emptyTitle: { fontFamily: Fonts.displaySemiBold, fontSize: 23, color: Colors.ink, letterSpacing: -0.4, fontWeight: '600', textAlign: 'center', marginBottom: 10 },

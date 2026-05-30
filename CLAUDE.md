@@ -215,6 +215,19 @@ git push origin --delete feature/mo-X-<nama>
 > Claude mengisi bagian ini setelah setiap sesi.
 
 ```
+[MO-10 · 2026-05-30]
+- chat.ts: ganti REST polling dengan Supabase Realtime. fetchMessages() pakai Supabase JS langsung (dengan JOIN users), subscribeMessages() subscribe postgres_changes INSERT filtered by group_id. sendMessage() tetap REST POST.
+- ChatScreen: hapus POLL_INTERVAL, subscribe realtime di useEffect, dedupe optimistic update dengan id check. userNameCache (useRef) diisi dari initial load dan dipakai untuk memperkaya pesan realtime (yang tidak ada JOIN-nya).
+- ChatMessage.type: harus 'user' | 'system' (bukan literal 'user') agar filter 'Sistem' di screen tidak error TypeScript.
+- Realtime mobile pakai anon key — auth.uid() tidak berfungsi karena JWT kustom tidak punya sub claim. messages table tidak punya RLS (sengaja untuk MVP).
+- notifications.ts: interface berubah is_read: boolean (bukan read_at), response dibungkus { notifications, unread_count, has_more }. markAllRead PATCH (bukan POST). Tambah markRead() per item.
+- NotificationsScreen: sesuaikan is_read, tambah pull-to-refresh, loading state, error state, tap item → markRead.
+- groups.ts: tambah setTanggalPelaksanaan().
+- DetailGrupScreen: tombol "Atur Tanggal" hanya muncul jika isKetua && status === 'active' && current_period_id ada. Modal dengan TextInput + validasi /^\d{4}-\d{2}-\d{2}$/.
+- auth.ts: tambah deleteAccount() → DELETE /api/users/me.
+- ProfileScreen: tombol "Hapus Akun" (subtle, warna muted) di bawah Logout. Konfirmasi 2 langkah via Alert.alert bertingkat (bukan Alert.prompt — tidak cross-platform). useAuth harus expose token.
+- Icon.tsx: tambah trash icon (Lucide path).
+
 [MO-09 · 2026-05-30]
 Audit gap fixes — 28 dari 34 gap diselesaikan (sprint 1-3). GAP-026 (chat tabel+endpoint) dan GAP-028 (notifikasi inbox design) ditunda karena butuh desain arsitektur baru.
 

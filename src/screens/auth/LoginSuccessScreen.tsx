@@ -1,13 +1,14 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, SafeAreaView } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { CommonActions } from '@react-navigation/native';
 import { AuthStackParamList } from '../../navigation/types';
 import { Colors } from '../../theme/colors';
 import { Fonts } from '../../theme/typography';
 import { Icon } from '../../components/ui/Icon';
 import { Card } from '../../components/ui/Card';
 import { ListRow } from '../../components/ui/ListRow';
+import { Btn } from '../../components/ui/Button';
+import { useAuth } from '../../hooks/useAuth';
 
 type Props = NativeStackScreenProps<AuthStackParamList, 'LoginSuccess'>;
 
@@ -17,15 +18,21 @@ const NEXT_STEPS = [
   { icon: 'trophy', title: 'Pantau giliranmu di tab Grup' },
 ];
 
-export function LoginSuccessScreen({ navigation, route }: Props) {
-  const { name, phone } = route.params;
+export function LoginSuccessScreen({ route }: Props) {
+  const { name, phone, token, user } = route.params;
+  const { login } = useAuth();
+  const didLogin = useRef(false);
 
+  const doLogin = async () => {
+    if (didLogin.current) return;
+    didLogin.current = true;
+    await login(token, user);
+    // RootNavigator watches token — switches to AppNavigator automatically
+  };
+
+  // Auto-navigate after 2 seconds
   useEffect(() => {
-    const timer = setTimeout(() => {
-      navigation.dispatch(
-        CommonActions.reset({ index: 0, routes: [{ name: 'Splash' }] }),
-      );
-    }, 3000);
+    const timer = setTimeout(doLogin, 2000);
     return () => clearTimeout(timer);
   }, []);
 
@@ -38,7 +45,7 @@ export function LoginSuccessScreen({ navigation, route }: Props) {
           </View>
         </View>
 
-        <Text style={styles.h1}>Selamat datang!</Text>
+        <Text style={styles.h1}>Login berhasil!</Text>
         <Text style={styles.sub}>
           Halo, <Text style={styles.bold}>{name ?? phone}</Text>!{'\n'}
           Kamu berhasil masuk ke Arisan App.
@@ -57,6 +64,10 @@ export function LoginSuccessScreen({ navigation, route }: Props) {
             />
           ))}
         </Card>
+
+        <Btn full size="lg" iconRight="arrowRight" onPress={doLogin} style={styles.cta}>
+          Ke beranda
+        </Btn>
       </View>
     </SafeAreaView>
   );
@@ -64,7 +75,13 @@ export function LoginSuccessScreen({ navigation, route }: Props) {
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: Colors.bg },
-  body: { flex: 1, paddingHorizontal: 22, paddingTop: 60, alignItems: 'center', textAlign: 'center' },
+  body: {
+    flex: 1,
+    paddingHorizontal: 22,
+    paddingTop: 60,
+    paddingBottom: 24,
+    alignItems: 'center',
+  },
   checkOuter: {
     width: 92,
     height: 92,
@@ -115,4 +132,5 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     textTransform: 'uppercase',
   },
+  cta: { marginTop: 'auto', width: '100%' },
 });

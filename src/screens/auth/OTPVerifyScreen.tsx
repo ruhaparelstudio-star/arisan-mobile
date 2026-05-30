@@ -7,7 +7,6 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
-  TouchableOpacity,
 } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { AuthStackParamList } from '../../navigation/types';
@@ -18,17 +17,38 @@ import { Pill } from '../../components/ui/Pill';
 import { OtpBoxes } from '../../components/ui/OtpBoxes';
 import { Btn } from '../../components/ui/Button';
 import { Icon } from '../../components/ui/Icon';
-import { verifyOtp, sendOtp } from '../../api/auth';
-import { useAuth } from '../../hooks/useAuth';
+import { authApi } from '../../api/auth';
+import { ApiError } from '../../api/client';
 
 type Props = NativeStackScreenProps<AuthStackParamList, 'OTPVerify'>;
 
 const RESEND_SECONDS = 30;
 const EXPIRY_SECONDS = 5 * 60;
 
+function mapVerifyError(e: unknown): string {
+  if (e instanceof ApiError) {
+    if (e.status === 410) return 'OTP sudah expired. Kirim ulang OTP.';
+    if (e.status === 401 || e.status === 400) {
+      const match = e.message?.match(/(\d+)\s*percobaan/i);
+      if (match) return `OTP salah. Sisa ${match[1]} percobaan sebelum kode di-reset.`;
+      return e.message ?? 'OTP salah. Periksa kembali kodenya.';
+    }
+    if (e.message) return e.message;
+  }
+  return 'OTP salah atau sudah kedaluwarsa.';
+}
+
+function mapResendError(e: unknown): string {
+  if (e instanceof ApiError) {
+    if (e.status === 429) return 'Terlalu banyak percobaan. Coba lagi dalam 1 jam.';
+    if (e.status === 503) return 'Gagal mengirim OTP. Tunggu 30 detik lalu coba lagi.';
+    if (e.message) return e.message;
+  }
+  return 'Gagal kirim ulang kode.';
+}
+
 export function OTPVerifyScreen({ navigation, route }: Props) {
   const { phone } = route.params;
-  const { login } = useAuth();
   const [otp, setOtp] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -46,40 +66,56 @@ export function OTPVerifyScreen({ navigation, route }: Props) {
     return () => clearInterval(t);
   }, [resendCooldown]);
 
-  const formatTime = (s: number) => `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
+  const formatTime = (s: number) =>
+    `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
 
-  const handleVerify = async () => {
-    if (otp.length !== 6) return;
+  const handleVerify = useCallback(async (code: string) => {
+    if (code.length !== 6 || loading) return;
     setError('');
     setLoading(true);
     try {
-      const res = await verifyOtp(phone, otp);
-      await login(res.token, res.user);
-      navigation.navigate('LoginSuccess', { name: res.user.name, phone: res.user.phone });
-    } catch (e: any) {
-      setError(e.message ?? 'Kode salah atau sudah kedaluwarsa.');
+      const res = await authApi.verifyOTP(phone, code);
+      // Pass token+user to LoginSuccess; login() is called there
+      navigation.navigate('LoginSuccess', {
+        name: res.user.name,
+        phone: res.user.phone,
+        token: res.token,
+        user: res.user,
+      });
+    } catch (e) {
+      setError(mapVerifyError(e));
       setOtp('');
     } finally {
       setLoading(false);
     }
-  };
+  }, [phone, loading, navigation]);
+
+  // Auto-submit when 6 digits entered
+  useEffect(() => {
+    if (otp.length === 6) {
+      handleVerify(otp);
+    }
+  }, [otp, handleVerify]);
 
   const handleResend = async () => {
     if (resendCooldown > 0) return;
     try {
-      await sendOtp(phone);
+      await authApi.sendOTP(phone);
       setResendCooldown(RESEND_SECONDS);
       setError('');
       setOtp('');
-    } catch (e: any) {
-      setError(e.message ?? 'Gagal kirim ulang kode.');
+    } catch (e) {
+      setError(mapResendError(e));
     }
   };
 
   return (
     <SafeAreaView style={styles.safe}>
       <AppBar onBack={() => navigation.goBack()} />
-      <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+      <KeyboardAvoidingView
+        style={styles.flex}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      >
         <ScrollView contentContainerStyle={styles.body} keyboardShouldPersistTaps="handled">
           <Pill tone="mint" style={styles.step}>
             Langkah 2 dari 2
@@ -106,7 +142,9 @@ export function OTPVerifyScreen({ navigation, route }: Props) {
           <Text style={styles.resendRow}>
             Belum diterima?{' '}
             {resendCooldown > 0 ? (
-              <Text style={styles.resendDisabled}>Kirim ulang dalam {formatTime(resendCooldown)}</Text>
+              <Text style={styles.resendDisabled}>
+                Kirim ulang dalam {formatTime(resendCooldown)}
+              </Text>
             ) : (
               <Text style={styles.resendActive} onPress={handleResend}>
                 Kirim ulang kode
@@ -124,14 +162,19 @@ export function OTPVerifyScreen({ navigation, route }: Props) {
           {countdown > 0 && (
             <Text style={styles.expiry}>Kode berlaku {formatTime(countdown)}</Text>
           )}
+          {countdown === 0 && (
+            <Text style={[styles.expiry, styles.expiryDanger]}>
+              OTP sudah expired. Kirim ulang OTP.
+            </Text>
+          )}
 
           <View style={styles.flex} />
           <Btn
             full
             size="lg"
-            onPress={handleVerify}
+            onPress={() => handleVerify(otp)}
             loading={loading}
-            disabled={otp.length !== 6}
+            disabled={otp.length !== 6 || loading}
             style={styles.cta}
           >
             Verifikasi
@@ -155,12 +198,30 @@ const styles = StyleSheet.create({
     letterSpacing: -0.6,
     fontWeight: '600',
   },
-  sub: { fontFamily: Fonts.bodyRegular, fontSize: 14.5, color: Colors.muted, lineHeight: 22, marginTop: 12 },
+  sub: {
+    fontFamily: Fonts.bodyRegular,
+    fontSize: 14.5,
+    color: Colors.muted,
+    lineHeight: 22,
+    marginTop: 12,
+  },
   link: { fontFamily: Fonts.bodySemiBold, color: Colors.primaryInk, fontWeight: '600' },
   otpWrap: { marginTop: 30 },
   errorRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 12 },
-  errorText: { fontFamily: Fonts.bodySemiBold, fontSize: 13, color: Colors.danger, flex: 1, fontWeight: '600' },
-  resendRow: { textAlign: 'center', marginTop: 22, fontFamily: Fonts.bodyRegular, fontSize: 14, color: Colors.muted },
+  errorText: {
+    fontFamily: Fonts.bodySemiBold,
+    fontSize: 13,
+    color: Colors.danger,
+    flex: 1,
+    fontWeight: '600',
+  },
+  resendRow: {
+    textAlign: 'center',
+    marginTop: 22,
+    fontFamily: Fonts.bodyRegular,
+    fontSize: 14,
+    color: Colors.muted,
+  },
   resendDisabled: { fontFamily: Fonts.bodySemiBold, color: Colors.mutedStrong, fontWeight: '600' },
   resendActive: { fontFamily: Fonts.bodySemiBold, color: Colors.primaryInk, fontWeight: '600' },
   infoBox: {
@@ -173,7 +234,20 @@ const styles = StyleSheet.create({
     padding: 14,
     marginTop: 18,
   },
-  infoText: { flex: 1, fontFamily: Fonts.bodyRegular, fontSize: 12.5, color: Colors.muted, lineHeight: 18 },
-  expiry: { textAlign: 'center', marginTop: 14, fontFamily: Fonts.bodyRegular, fontSize: 13, color: Colors.muted },
+  infoText: {
+    flex: 1,
+    fontFamily: Fonts.bodyRegular,
+    fontSize: 12.5,
+    color: Colors.muted,
+    lineHeight: 18,
+  },
+  expiry: {
+    textAlign: 'center',
+    marginTop: 14,
+    fontFamily: Fonts.bodyRegular,
+    fontSize: 13,
+    color: Colors.muted,
+  },
+  expiryDanger: { color: Colors.danger, fontFamily: Fonts.bodySemiBold, fontWeight: '600' },
   cta: { marginTop: 24 },
 });

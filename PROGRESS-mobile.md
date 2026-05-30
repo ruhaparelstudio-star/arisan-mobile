@@ -29,7 +29,7 @@
 | Sesi | Feature | Status |
 |------|---------|--------|
 | MO-0 | Setup Scaffold | `[x]` |
-| MO-1 | Auth & Onboarding | `[ ]` |
+| MO-1 | Auth & Onboarding | `[x]` |
 | MO-2 | Manajemen Grup | `[ ]` |
 | MO-3 | Tracking Pembayaran | `[ ]` |
 | MO-4 | Sistem Undian | `[ ]` |
@@ -73,36 +73,40 @@
 ## MO-1 — Auth & Onboarding
 
 ```
-[ ] src/api/auth.ts — sendOTP(), verifyOTP()
-[ ] src/hooks/useAuth.ts — token, user, login(), logout()
-[ ] SplashScreen.tsx
-    [ ] Logo, tagline, 2 tombol CTA
-    [ ] Semua states (lihat checklist screen)
-[ ] PhoneInputScreen.tsx
-    [ ] Prefix +62 terpisah, input angka
-    [ ] Validasi lokal format nomor
-    [ ] Loading, error, disabled state
-[ ] OTPVerifyScreen.tsx
-    [ ] 6 kotak auto-advance
-    [ ] Countdown 5 menit
-    [ ] Error pesan spesifik (salah, expired, Fonnte gagal)
-    [ ] Tombol kirim ulang (aktif 30 detik)
-[ ] LoginSuccessScreen.tsx
-    [ ] Nama + nomor dari response
-    [ ] Auto-navigate 2 detik
-[ ] JWT tersimpan di SecureStore (bukan AsyncStorage)
-[ ] Auto-login: cek token di SecureStore saat app start
-[ ] Logout: hapus SecureStore + navigate ke Splash
-[ ] Semua pesan error Bahasa Indonesia
-[ ] Cek mockup .claude/designs/ untuk semua screen ini
+[x] src/api/auth.ts — authApi.sendOTP(), authApi.verifyOTP()
+[x] src/hooks/useAuth.ts — token, user, login(), logout(), isLoading
+[x] SplashScreen.tsx
+    [x] Ilustrasi Hi-Fi, tagline, 2 tombol CTA (Mulai sekarang + Sudah punya akun outline)
+[x] PhoneInputScreen.tsx
+    [x] Prefix +62 terpisah, input angka
+    [x] Validasi lokal format nomor (9–13 digit)
+    [x] Loading, error, disabled state
+    [x] 429: "Terlalu banyak percobaan. Coba lagi dalam 1 jam."
+    [x] 503: "Gagal mengirim OTP. Tunggu 30 detik lalu coba lagi."
+[x] OTPVerifyScreen.tsx
+    [x] 6 kotak auto-advance + auto-submit saat 6 digit
+    [x] Countdown 5 menit + expired message
+    [x] Error spesifik: OTP salah + sisa percobaan, expired, 429, 503
+    [x] Tombol kirim ulang (aktif setelah 30 detik)
+[x] LoginSuccessScreen.tsx
+    [x] Nama + nomor dari response
+    [x] Tombol "Ke beranda" + auto-navigate 2 detik
+    [x] login() dipanggil di sini, navigator switch otomatis via RootNavigator
+[x] JWT tersimpan di SecureStore (bukan AsyncStorage)
+[x] Auto-login: cek token di SecureStore saat app start (isLoading)
+[x] Logout: hapus SecureStore + RootNavigator switch ke AuthNavigator
+[x] Semua pesan error Bahasa Indonesia
+[x] Mockup: tidak ada di .claude/designs/ — pakai Design System + Hi-Fi dari MO-0
 ```
 
 **Mockup tersedia:**
 > `[ ]` Ya — diikuti persis
-> `[ ]` Tidak — pakai Design System
+> `[x]` Tidak — pakai Design System (Hi-Fi dari MO-0 scaffold)
 
 **Catatan:**
-> _(isi setelah sesi)_
+> Sesi MO-1 selesai 2026-05-30. Branch: feature/mo-w02-auth.
+> Alur login: OTPVerify → navigate LoginSuccess (sebelum login()) → login() di LoginSuccess → RootNavigator switch ke AppNavigator.
+> TypeScript check: 0 errors. Tidak ada dependency baru.
 
 ---
 

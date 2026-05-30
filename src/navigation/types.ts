@@ -4,7 +4,12 @@ export type AuthStackParamList = {
   Splash: undefined;
   PhoneInput: undefined;
   OTPVerify: { phone: string };
-  LoginSuccess: { name: string | null; phone: string };
+  LoginSuccess: {
+    name: string | null;
+    phone: string;
+    token: string;
+    user: { id: string; phone: string; name: string | null };
+  };
   JoinGrup: undefined;
   JoinConfirm: { code: string };
 };

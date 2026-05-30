@@ -14,11 +14,9 @@ import { Icon } from '../../components/ui/Icon';
 import { OfflineBanner } from '../../components/OfflineBanner';
 import { useNetworkStatus } from '../../hooks/useNetworkStatus';
 import { useAuth } from '../../hooks/useAuth';
-import { getMessages, sendMessage, ChatMessage } from '../../api/chat';
+import { fetchMessages, sendMessage, subscribeMessages, ChatMessage } from '../../api/chat';
 
 type Props = NativeStackScreenProps<AppStackParamList, 'Chat'>;
-
-const POLL_INTERVAL_MS = 4000;
 
 function formatTime(iso: string): string {
   const d = new Date(iso);
@@ -48,32 +46,39 @@ export function ChatScreen({ navigation, route }: Props) {
   const [loadingMore, setLoadingMore] = useState(false);
   const [filter, setFilter] = useState('Semua');
 
-  const flatRef = useRef<FlatList>(null);
-  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const newestIdRef = useRef<string | undefined>(undefined);
+  // userNameCache: user_id → name (diisi dari initial load, dipakai untuk realtime events)
+  const userNameCache = useRef<Record<string, string>>({});
 
-  const loadMessages = useCallback(async (silent = false) => {
-    if (!token) return;
-    if (!silent) setLoading(true);
+  const flatRef = useRef<FlatList>(null);
+
+  const loadMessages = useCallback(async () => {
+    setLoading(true);
     try {
-      const res = await getMessages(token, groupId, 30);
+      const res = await fetchMessages(groupId, 30);
       setMessages(res.messages);
       setHasMore(res.has_more);
-      if (res.messages.length > 0) newestIdRef.current = res.messages[0].id;
+      // Populate name cache dari initial load
+      for (const m of res.messages) {
+        if (m.user_id && m.user_name) userNameCache.current[m.user_id] = m.user_name;
+      }
       setError(null);
     } catch {
-      if (!silent) setError('Gagal memuat pesan. Coba lagi.');
+      setError('Gagal memuat pesan. Coba lagi.');
     } finally {
-      if (!silent) setLoading(false);
+      setLoading(false);
     }
-  }, [token, groupId]);
+  }, [groupId]);
 
   const loadMore = useCallback(async () => {
-    if (!token || !hasMore || loadingMore || messages.length === 0) return;
+    if (!hasMore || loadingMore || messages.length === 0) return;
     setLoadingMore(true);
     try {
       const oldest = messages[messages.length - 1].id;
-      const res = await getMessages(token, groupId, 30, oldest);
+      const res = await fetchMessages(groupId, 30, oldest);
+      // Populate cache dari older messages
+      for (const m of res.messages) {
+        if (m.user_id && m.user_name) userNameCache.current[m.user_id] = m.user_name;
+      }
       setMessages((prev) => [...prev, ...res.messages]);
       setHasMore(res.has_more);
     } catch {
@@ -81,33 +86,42 @@ export function ChatScreen({ navigation, route }: Props) {
     } finally {
       setLoadingMore(false);
     }
-  }, [token, groupId, hasMore, loadingMore, messages]);
+  }, [groupId, hasMore, loadingMore, messages]);
 
   useEffect(() => {
     loadMessages();
   }, [loadMessages]);
 
+  // Supabase Realtime subscription — gantikan polling
   useEffect(() => {
-    if (!isOnline) {
-      if (pollRef.current) clearInterval(pollRef.current);
-      return;
-    }
-    pollRef.current = setInterval(() => loadMessages(true), POLL_INTERVAL_MS);
-    return () => {
-      if (pollRef.current) clearInterval(pollRef.current);
-    };
-  }, [isOnline, loadMessages]);
+    const unsubscribe = subscribeMessages(groupId, (rawMsg) => {
+      const fullMsg: ChatMessage = {
+        ...rawMsg,
+        user_name: userNameCache.current[rawMsg.user_id] ?? 'Anggota',
+      };
+      setMessages((prev) => {
+        // Dedupe: jika message ID sudah ada (dari optimistic update), skip
+        if (prev.some((m) => m.id === fullMsg.id)) return prev;
+        return [fullMsg, ...prev];
+      });
+    });
+    return unsubscribe;
+  }, [groupId]);
 
   const handleSend = async () => {
     if (!draft.trim() || !isOnline || !token || sending) return;
-    const text = draft.trim();
+    const content = draft.trim();
     setDraft('');
     setSending(true);
     try {
-      const res = await sendMessage(token, groupId, text);
-      setMessages((prev) => [res.message, ...prev]);
+      const res = await sendMessage(token, groupId, content);
+      // Tambah ke state secara optimistis; realtime akan dedupe jika datang dobel
+      setMessages((prev) => {
+        if (prev.some((m) => m.id === res.message.id)) return prev;
+        return [{ ...res.message, user_name: user?.name ?? user?.phone ?? 'Saya' }, ...prev];
+      });
     } catch {
-      setDraft(text);
+      setDraft(content);
     } finally {
       setSending(false);
     }
@@ -125,7 +139,7 @@ export function ChatScreen({ navigation, route }: Props) {
         <View style={styles.sysRow}>
           <View style={styles.sysBubble}>
             <Icon name="sparkles" size={14} color={Colors.primaryInk} />
-            <Text style={styles.sysText}>{item.text}</Text>
+            <Text style={styles.sysText}>{item.content}</Text>
           </View>
         </View>
       );
@@ -146,7 +160,7 @@ export function ChatScreen({ navigation, route }: Props) {
               )}
             </View>
           )}
-          <Text style={[styles.msgText, isMe && styles.msgTextMe]}>{item.text}</Text>
+          <Text style={[styles.msgText, isMe && styles.msgTextMe]}>{item.content}</Text>
           <Text style={[styles.msgTime, isMe && styles.msgTimeMe]}>{formatTime(item.created_at)}</Text>
         </View>
       </View>

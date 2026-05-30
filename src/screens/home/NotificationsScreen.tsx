@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -6,6 +6,7 @@ import {
   StyleSheet,
   SafeAreaView,
   TouchableOpacity,
+  RefreshControl,
 } from 'react-native';
 import { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
 import { MainTabParamList } from '../../navigation/types';
@@ -14,26 +15,27 @@ import { Fonts } from '../../theme/typography';
 import { AppBar } from '../../components/ui/AppBar';
 import { Card } from '../../components/ui/Card';
 import { Pill } from '../../components/ui/Pill';
-import { Btn } from '../../components/ui/Button';
 import { Icon } from '../../components/ui/Icon';
 import { StateView } from '../../components/ui/StateView';
 import { useAuth } from '../../hooks/useAuth';
-import { getNotifications, markAllRead, Notification } from '../../api/notifications';
+import { getNotifications, markAllRead, markRead, Notification } from '../../api/notifications';
 
 type Props = BottomTabScreenProps<MainTabParamList, 'Notifikasi'>;
 
 const TONE_MAP: Record<string, string> = {
+  payment_confirmed: 'mint',
   payment_due: 'amber',
-  winner: 'mint',
+  undian_done: 'mint',
+  swap_approved: 'blue',
   swap_request: 'blue',
-  confirmed: 'mint',
   member_join: 'neutral',
 };
 const ICON_MAP: Record<string, string> = {
+  payment_confirmed: 'checkCircle',
   payment_due: 'wallet',
-  winner: 'sparkles',
+  undian_done: 'sparkles',
+  swap_approved: 'swap',
   swap_request: 'swap',
-  confirmed: 'checkCircle',
   member_join: 'users',
 };
 
@@ -57,25 +59,72 @@ export function NotificationsScreen({ navigation }: Props) {
   const { token } = useAuth();
   const [notifs, setNotifs] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
+  const load = useCallback(async (silent = false) => {
     if (!token) return;
-    getNotifications(token)
-      .then(setNotifs)
-      .catch(() => {})
-      .finally(() => setLoading(false));
+    if (!silent) setLoading(true);
+    setError(null);
+    try {
+      const res = await getNotifications(token);
+      setNotifs(res.notifications);
+    } catch {
+      if (!silent) setError('Gagal memuat notifikasi. Coba lagi.');
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
   }, [token]);
+
+  useEffect(() => { load(); }, [load]);
+
+  const handleRefresh = () => {
+    setRefreshing(true);
+    load(true);
+  };
 
   const handleMarkAll = async () => {
     if (!token) return;
     await markAllRead(token).catch(() => {});
-    setNotifs((prev) => prev.map((n) => ({ ...n, read_at: new Date().toISOString() })));
+    setNotifs((prev) => prev.map((n) => ({ ...n, is_read: true })));
   };
 
-  const unread = notifs.filter((n) => !n.read_at);
-  const older = notifs.filter((n) => !!n.read_at);
+  const handleMarkOne = async (id: string) => {
+    if (!token) return;
+    await markRead(token, id).catch(() => {});
+    setNotifs((prev) => prev.map((n) => n.id === id ? { ...n, is_read: true } : n));
+  };
 
-  if (!loading && notifs.length === 0) {
+  const unread = notifs.filter((n) => !n.is_read);
+  const older = notifs.filter((n) => n.is_read);
+
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.safe}>
+        <AppBar large title="Notifikasi" />
+        <View style={styles.centered}>
+          <Text style={styles.loadingText}>Memuat notifikasi...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (error) {
+    return (
+      <SafeAreaView style={styles.safe}>
+        <AppBar large title="Notifikasi" />
+        <View style={styles.centered}>
+          <Text style={styles.errorText}>{error}</Text>
+          <TouchableOpacity onPress={() => load()} style={styles.retryBtn}>
+            <Text style={styles.retryLabel}>Coba Lagi</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (notifs.length === 0) {
     return (
       <SafeAreaView style={styles.safe}>
         <AppBar large title="Notifikasi" />
@@ -95,12 +144,17 @@ export function NotificationsScreen({ navigation }: Props) {
         large
         title="Notifikasi"
         right={
-          <TouchableOpacity onPress={handleMarkAll}>
-            <Text style={styles.markRead}>Tandai dibaca</Text>
-          </TouchableOpacity>
+          unread.length > 0 ? (
+            <TouchableOpacity onPress={handleMarkAll}>
+              <Text style={styles.markRead}>Tandai dibaca</Text>
+            </TouchableOpacity>
+          ) : undefined
         }
       />
-      <ScrollView contentContainerStyle={styles.body}>
+      <ScrollView
+        contentContainerStyle={styles.body}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={Colors.primary} />}
+      >
         {unread.length > 0 && (
           <>
             <View style={styles.sectionHeader}>
@@ -109,7 +163,12 @@ export function NotificationsScreen({ navigation }: Props) {
             </View>
             <Card pad={6} style={styles.card}>
               {unread.map((n, i) => (
-                <View key={n.id} style={[styles.notifRow, i < unread.length - 1 && styles.divider]}>
+                <TouchableOpacity
+                  key={n.id}
+                  style={[styles.notifRow, i < unread.length - 1 && styles.divider]}
+                  onPress={() => handleMarkOne(n.id)}
+                  activeOpacity={0.7}
+                >
                   <NotifIcon type={n.type} />
                   <View style={styles.notifContent}>
                     <View style={styles.notifTopRow}>
@@ -120,7 +179,7 @@ export function NotificationsScreen({ navigation }: Props) {
                     </View>
                     <Text style={styles.notifBody}>{n.body}</Text>
                   </View>
-                </View>
+                </TouchableOpacity>
               ))}
             </Card>
           </>
@@ -155,6 +214,11 @@ export function NotificationsScreen({ navigation }: Props) {
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: Colors.bg },
   body: { paddingHorizontal: 22, paddingBottom: 24 },
+  centered: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 },
+  loadingText: { fontFamily: Fonts.bodyRegular, fontSize: 14, color: Colors.muted },
+  errorText: { fontFamily: Fonts.bodyRegular, fontSize: 14, color: Colors.danger, textAlign: 'center', marginBottom: 12 },
+  retryBtn: { backgroundColor: Colors.primary, paddingHorizontal: 20, paddingVertical: 10, borderRadius: 8 },
+  retryLabel: { fontFamily: Fonts.bodySemiBold, fontSize: 14, color: Colors.white, fontWeight: '600' },
   markRead: { fontFamily: Fonts.bodySemiBold, color: Colors.primaryInk, fontSize: 13.5, fontWeight: '600' },
   sectionHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 10, marginTop: 4 },
   sectionLabel: { fontFamily: Fonts.bodyBold, fontSize: 12.5, color: Colors.amberInk, letterSpacing: 0.3, fontWeight: '700' },
@@ -166,7 +230,7 @@ const styles = StyleSheet.create({
   notifContent: { flex: 1, minWidth: 0 },
   notifTopRow: { flexDirection: 'row', justifyContent: 'space-between', gap: 8 },
   notifTitle: { fontFamily: Fonts.bodySemiBold, fontSize: 14.5, color: Colors.ink, fontWeight: '600', flex: 1 },
-  notifTitleRead: { fontWeight: '400' as any, color: Colors.muted, fontFamily: Fonts.bodyRegular },
+  notifTitleRead: { fontWeight: '400' as never, color: Colors.muted, fontFamily: Fonts.bodyRegular },
   notifWhen: { fontFamily: Fonts.bodyRegular, fontSize: 11.5, color: Colors.muted, flexShrink: 0 },
   notifBody: { fontFamily: Fonts.bodyRegular, fontSize: 12.5, color: Colors.muted, lineHeight: 18, marginTop: 2 },
   olderLabel: { fontFamily: Fonts.bodyBold, fontSize: 12.5, color: Colors.muted, letterSpacing: 0.3, marginBottom: 10, marginTop: 4, fontWeight: '700' },

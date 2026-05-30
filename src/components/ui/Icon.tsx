@@ -10,6 +10,7 @@ const ICON_PATHS: Record<string, string> = {
   chevronRight: 'M9 18l6-6-6-6',
   chevronLeft: 'M15 18l-6-6 6-6',
   chevronDown: 'M6 9l6 6 6-6',
+  chevronUp: 'M18 15l-6-6-6 6',
   plus: 'M12 5v14M5 12h14',
   check: 'M20 6 9 17l-5-5',
   checkCircle: 'M22 11.08V12a10 10 0 1 1-5.93-9.14M22 4 12 14.01l-3-3',

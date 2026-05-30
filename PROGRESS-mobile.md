@@ -31,7 +31,7 @@
 | MO-0 | Setup Scaffold | `[x]` |
 | MO-1 | Auth & Onboarding | `[x]` |
 | MO-2 | Manajemen Grup | `[x]` |
-| MO-3 | Tracking Pembayaran | `[ ]` |
+| MO-3 | Tracking Pembayaran | `[x]` |
 | MO-4 | Sistem Undian | `[ ]` |
 | MO-5 | Tukar Giliran | `[ ]` |
 | MO-6 | Chat & Activity Log | `[ ]` |
@@ -156,25 +156,46 @@
 ## MO-3 — Tracking Pembayaran
 
 ```
-[ ] src/api/payments.ts
-[ ] src/hooks/usePaymentRealtime.ts — Supabase Realtime
-[ ] PaymentStatusScreen.tsx
-    [ ] Progress bar bayar
-    [ ] List anggota + status (lunas/belum/terlambat)
-    [ ] Timestamp konfirmasi
-    [ ] Tap anggota (ketua): modal konfirmasi
-    [ ] Badge "Live" di header
-    [ ] Disabled saat offline
-[ ] PaymentHistoryScreen.tsx
-    [ ] Accordion per periode
-    [ ] List anggota + status per periode
-[ ] Cache status bayar di AsyncStorage
-[ ] Label "Data terakhir diperbarui" saat offline
-[ ] Realtime update tanpa reload penuh
+[x] src/api/payments.ts
+    [x] getPayments(token, groupId, periodId)
+    [x] confirmPayment(token, groupId, periodId, userId) — single member
+    [x] cancelConfirm(token, groupId, periodId, userId) — DELETE, single member
+    [x] getPeriods(token, groupId)
+[x] src/hooks/usePaymentRealtime.ts — Supabase Realtime
+    [x] filter: period_id=eq.{periodId} (bukan group_id)
+    [x] terima initial: Payment[] — return payments state (bukan callback)
+    [x] sync ulang jika initial berubah (setelah fetch ulang)
+[x] PaymentStatusScreen.tsx
+    [x] Title: "Status Bayar — Periode [N]"
+    [x] Progress bar: [X]/[Y] anggota sudah bayar
+    [x] Jatuh tempo — merah jika sudah lewat
+    [x] Badge "Live" (Pill solid) di header jika online
+    [x] List anggota semua: ✓ Lunas (hijau) + timestamp, ⏰ Belum bayar (abu), ⚠ Terlambat (merah)
+    [x] Tap anggota (ketua) → Modal: "Konfirmasi bayar [nama]?" / "Batalkan konfirmasi?"
+    [x] Modal confirm/cancel dengan aksi async + loading state
+    [x] OfflineBanner
+    [x] Disabled tap + aksi saat offline
+    [x] Cache status bayar ke AsyncStorage (CACHE_KEYS.payments)
+    [x] Label "Data terakhir diperbarui: [waktu]" saat offline
+    [x] Fetch group detail untuk isKetua + resolusi nama konfirmator
+[x] PaymentHistoryScreen.tsx
+    [x] Accordion per periode — sort periode terbaru dulu
+    [x] Expand → lazy fetch payments anggota per periode
+    [x] List anggota + status (Lunas/Telat/Belum) per periode
+    [x] Loading state per accordion item
+[x] Cache status bayar di AsyncStorage
+[x] Label "Data terakhir diperbarui" saat offline
+[x] Realtime update tanpa reload penuh
+[x] chevronUp ditambahkan ke Icon.tsx
 ```
 
 **Catatan:**
-> _(isi setelah sesi)_
+> Sesi MO-3 selesai 2026-05-30. Branch: feature/mo-3-payments.
+> usePaymentRealtime direfactor: filter by period_id (bukan group_id), return state bukan callback.
+> PaymentStatusScreen: fetch group detail + payments + periods untuk isKetua, due date, confirmer name.
+> PaymentHistoryScreen: accordion lazy-load — payments per periode di-fetch saat expand (bukan preload semua).
+> confirmPayments (array) diganti confirmPayment (single) + cancelConfirm (single DELETE) — konsisten dengan spec.
+> Realtime: belum ditest dengan 2 device (butuh 2 device fisik dengan Supabase aktif).
 
 ---
 

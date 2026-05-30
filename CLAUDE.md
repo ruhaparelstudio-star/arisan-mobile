@@ -166,10 +166,36 @@ Offline  → OfflineBanner + data cache jika ada + aksi kritis disabled
 
 ---
 
+## Git Workflow
+
+Branch strategy sama dengan arisan-api:
+
+```bash
+# Mulai sesi baru dari develop
+git checkout develop
+git pull origin develop
+git checkout -b feature/mo-X-<nama>
+
+# Setelah selesai — CI harus hijau dulu
+git checkout develop
+git merge feature/mo-X-<nama> --no-ff
+git push origin develop
+git branch -D feature/mo-X-<nama>
+git push origin --delete feature/mo-X-<nama>
+```
+
+- Branch `develop` = base development
+- Setiap sesi MO-X buat branch baru `feature/mo-X-<nama>`
+- CI jalan otomatis di branch `feature/**` dan `develop`
+- Merge ke `develop` hanya kalau CI passed
+- PR ke `main` hanya untuk release
+
+---
+
 ## Referensi
 
 - API URL: `EXPO_PUBLIC_API_URL`
-- Progress: `PROGRESS.md`
+- Progress: `PROGRESS-mobile.md`
 - Mockup: `.claude/designs/`
 - Dev guide: `../DEVELOPMENT_GUIDE.md`
 

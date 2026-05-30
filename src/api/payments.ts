@@ -18,7 +18,7 @@ export interface Period {
   group_id: string;
   period_number: number;   // dari periode_ke
   due_date: string;        // dari jatuh_tempo
-  status: 'open' | 'closed';
+  status: 'upcoming' | 'active' | 'closed';  // backend: upcoming|active|completed → mobile: upcoming|active|closed
 }
 
 // GAP-013+GAP-015: fix URL prefix + unwrap { payments }
@@ -77,6 +77,6 @@ function adaptPeriod(raw: RawPeriod): Period {
     group_id: raw.group_id,
     period_number: raw.periode_ke,
     due_date: raw.jatuh_tempo,
-    status: raw.status === 'completed' ? 'closed' : 'open',
+    status: raw.status === 'completed' ? 'closed' : raw.status,
   };
 }

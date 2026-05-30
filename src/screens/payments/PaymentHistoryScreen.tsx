@@ -111,8 +111,11 @@ export function PaymentHistoryScreen({ navigation, route }: Props) {
                   <View style={styles.flex}>
                     <View style={styles.headerTop}>
                       <Text style={styles.periodTitle}>Periode {p.period_number}</Text>
-                      <Pill tone={p.status === 'closed' ? 'mint' : 'amber'} dot>
-                        {p.status === 'closed' ? 'Selesai' : 'Aktif'}
+                      <Pill
+                        tone={p.status === 'closed' ? 'mint' : p.status === 'active' ? 'amber' : 'neutral'}
+                        dot
+                      >
+                        {p.status === 'closed' ? 'Selesai' : p.status === 'active' ? 'Aktif' : 'Mendatang'}
                       </Pill>
                     </View>
                     <Text style={styles.periodSub}>

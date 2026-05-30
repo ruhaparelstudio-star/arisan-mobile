@@ -5,7 +5,7 @@ export interface Swap {
   group_id: string;
   requester_id: string;
   target_id: string;
-  status: 'pending' | 'target_accepted' | 'target_rejected' | 'approved' | 'ketua_rejected';
+  status: 'pending' | 'waiting_ketua' | 'target_accepted' | 'target_rejected' | 'approved' | 'ketua_rejected';
   created_at: string;
   requester?: { name: string | null; phone: string };
   target?: { name: string | null; phone: string };

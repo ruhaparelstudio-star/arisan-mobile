@@ -215,6 +215,13 @@ git push origin --delete feature/mo-X-<nama>
 > Claude mengisi bagian ini setelah setiap sesi.
 
 ```
+[AUDIT-GAP · 2026-05-30]
+- swaps.ts: tambah 'waiting_ketua' ke Swap.status union — backend set status ini saat target menerima, bukan 'target_accepted'.
+- SwapApprovalScreen: filter diubah dari s.status === 'target_accepted' ke s.status === 'waiting_ketua' — sebelumnya approval screen SELALU kosong karena status tidak pernah match.
+- groups.ts: leaveGroup() method diubah dari POST ke DELETE — backend hanya punya DELETE /:id/leave, POST 405.
+- payments.ts: Period.status diubah dari 'open'|'closed' ke 'upcoming'|'active'|'closed'. adaptPeriod sekarang preserve 'upcoming' dan 'active' as-is, hanya map 'completed' → 'closed'. Sebelumnya 'upcoming' dan 'active' keduanya jadi 'open' dan tidak bisa dibedakan.
+- PaymentHistoryScreen: label Pill diupdate — 'closed' = Selesai (mint), 'active' = Aktif (amber), 'upcoming' = Mendatang (neutral).
+
 [MO-10 · 2026-05-30]
 - chat.ts: ganti REST polling dengan Supabase Realtime. fetchMessages() pakai Supabase JS langsung (dengan JOIN users), subscribeMessages() subscribe postgres_changes INSERT filtered by group_id. sendMessage() tetap REST POST.
 - ChatScreen: hapus POLL_INTERVAL, subscribe realtime di useEffect, dedupe optimistic update dengan id check. userNameCache (useRef) diisi dari initial load dan dipakai untuk memperkaya pesan realtime (yang tidak ada JOIN-nya).

@@ -136,7 +136,7 @@ export function getGroupByCode(
 
 export function leaveGroup(token: string, groupId: string): Promise<{ message: string }> {
   return apiCall(`/api/groups/${groupId}/leave`, {
-    method: 'POST',
+    method: 'DELETE',
     token,
   });
 }

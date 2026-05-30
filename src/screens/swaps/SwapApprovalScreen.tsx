@@ -52,7 +52,7 @@ export function SwapApprovalScreen({ navigation, route }: Props) {
     setErrorMsg('');
     try {
       const res = await swapsApi.getGroupSwaps(groupId, token);
-      const pending = res.swaps.filter((s) => s.status === 'target_accepted');
+      const pending = res.swaps.filter((s) => s.status === 'waiting_ketua');
       setSwaps(pending);
     } catch (e: any) {
       setErrorMsg(e?.message ?? 'Gagal memuat daftar approval. Coba lagi.');

@@ -73,7 +73,7 @@ export function SwapInboxScreen({ navigation }: Props) {
     const requesterName = swap.requester?.name ?? swap.requester?.phone ?? 'Anggota';
     Alert.alert(
       'Permintaan Tukar Giliran',
-      `${requesterName} ingin tukar P${swap.requester_period} (mereka) ↔ P${swap.target_period} (kamu).`,
+      `${requesterName} ingin tukar giliran dengan kamu.`,
       [
         {
           text: 'Terima',
@@ -182,12 +182,16 @@ export function SwapInboxScreen({ navigation }: Props) {
                     <View style={styles.swapRow}>
                       <View style={styles.periodBox}>
                         <Text style={styles.periodLabel}>Giliran mereka</Text>
-                        <Pill tone="neutral">Periode {s.requester_period}</Pill>
+                        {s.requester_period != null
+                          ? <Pill tone="neutral">Periode {s.requester_period}</Pill>
+                          : <Text style={styles.periodLabel}>—</Text>}
                       </View>
                       <Icon name="swap" size={20} color={Colors.primaryInk} />
                       <View style={styles.periodBox}>
                         <Text style={styles.periodLabel}>Giliranmu</Text>
-                        <Pill tone="mint">Periode {s.target_period}</Pill>
+                        {s.target_period != null
+                          ? <Pill tone="mint">Periode {s.target_period}</Pill>
+                          : <Text style={styles.periodLabel}>—</Text>}
                       </View>
                     </View>
 

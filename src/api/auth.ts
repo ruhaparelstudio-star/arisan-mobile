@@ -30,19 +30,21 @@ export const authApi = {
 export const sendOtp = authApi.sendOTP;
 export const verifyOtp = (phone: string, code: string) => authApi.verifyOTP(phone, code);
 
+// GAP-001: backend tidak mengembalikan push_token
 export interface UserProfile {
   id: string;
   phone: string;
   name: string | null;
-  push_token: string | null;
   created_at: string;
 }
 
+// GAP-001: unwrap { user: data }
 export function getMe(token: string): Promise<UserProfile> {
-  return apiCall('/api/users/me', { token });
+  return apiCall<{ user: UserProfile }>('/api/users/me', { token }).then((r) => r.user);
 }
 
-export function updateMe(token: string, data: { name?: string }): Promise<UserProfile> {
+// GAP-002: backend hanya mengembalikan { message }
+export function updateMe(token: string, data: { name?: string }): Promise<{ message: string }> {
   return apiCall('/api/users/me', {
     method: 'PUT',
     body: JSON.stringify(data),
@@ -50,10 +52,11 @@ export function updateMe(token: string, data: { name?: string }): Promise<UserPr
   });
 }
 
+// GAP-003: field name expo_push_token bukan push_token
 export function updatePushToken(token: string, pushToken: string): Promise<{ message: string }> {
   return apiCall('/api/users/push-token', {
     method: 'PUT',
-    body: JSON.stringify({ push_token: pushToken }),
+    body: JSON.stringify({ expo_push_token: pushToken }),
     token,
   });
 }

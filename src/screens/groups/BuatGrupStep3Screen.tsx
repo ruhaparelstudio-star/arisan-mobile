@@ -23,10 +23,11 @@ function WizardProgress({ step }: { step: number }) {
   );
 }
 
+// GAP-007: backend menggunakan 'manual' bukan 'offline'
 const DRAW_MODES = [
   { id: 'fixed', icon: 'users', title: 'Urutan tetap', sub: 'Aku atur urutan giliran dari awal' },
   { id: 'random', icon: 'sparkles', title: 'Undian per periode', sub: 'Server acak tiap periode — transparan & adil' },
-  { id: 'offline', icon: 'edit', title: 'Undian offline', sub: 'Aku input manual setelah undian fisik' },
+  { id: 'manual', icon: 'edit', title: 'Undian offline', sub: 'Aku input manual setelah undian fisik' },
 ];
 
 const FREQ_MAP: Record<string, string> = { 'Mingguan': 'weekly', '2 Minggu': 'biweekly', 'Bulanan': 'monthly' };

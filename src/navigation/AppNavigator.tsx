@@ -26,6 +26,8 @@ import { PaymentStatusScreen } from '../screens/payments/PaymentStatusScreen';
 import { PaymentHistoryScreen } from '../screens/payments/PaymentHistoryScreen';
 import { RequestSwapScreen } from '../screens/swaps/RequestSwapScreen';
 import { SwapStatusScreen } from '../screens/swaps/SwapStatusScreen';
+import { SwapInboxScreen } from '../screens/swaps/SwapInboxScreen';
+import { SwapApprovalScreen } from '../screens/swaps/SwapApprovalScreen';
 import { ActivityLogScreen } from '../screens/chat/ActivityLogScreen';
 import { SetGiliranScreen } from '../screens/groups/SetGiliranScreen';
 
@@ -96,6 +98,8 @@ export function AppNavigator() {
       <Stack.Screen name="PaymentHistory" component={PaymentHistoryScreen} />
       <Stack.Screen name="RequestSwap" component={RequestSwapScreen} />
       <Stack.Screen name="SwapStatus" component={SwapStatusScreen} />
+      <Stack.Screen name="SwapInbox" component={SwapInboxScreen} />
+      <Stack.Screen name="SwapApproval" component={SwapApprovalScreen} />
       <Stack.Screen name="ActivityLog" component={ActivityLogScreen} />
       <Stack.Screen name="SetGiliran" component={SetGiliranScreen} />
     </Stack.Navigator>

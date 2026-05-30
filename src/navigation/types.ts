@@ -38,6 +38,8 @@ export type AppStackParamList = {
   JoinConfirm: { code: string };
   RequestSwap: { groupId: string; myPeriod: number };
   SwapStatus: { requestId: string };
+  SwapInbox: undefined;
+  SwapApproval: { groupId: string; groupName: string };
   ActivityLog: { groupId: string; groupName: string };
   PaymentHistory: { groupId: string; groupName: string };
   SetGiliran: { groupId: string; members: Array<{ id: string; name: string; slot_order: number | null }> };

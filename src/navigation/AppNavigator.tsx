@@ -21,6 +21,7 @@ import { JoinGrupScreen } from '../screens/groups/JoinGrupScreen';
 import { JoinConfirmScreen } from '../screens/groups/JoinConfirmScreen';
 import { UndianScreen } from '../screens/undian/UndianScreen';
 import { UndianResultScreen } from '../screens/undian/UndianResultScreen';
+import { RiwayatPemenangScreen } from '../screens/undian/RiwayatPemenangScreen';
 import { PaymentStatusScreen } from '../screens/payments/PaymentStatusScreen';
 import { PaymentHistoryScreen } from '../screens/payments/PaymentHistoryScreen';
 import { RequestSwapScreen } from '../screens/swaps/RequestSwapScreen';
@@ -90,6 +91,7 @@ export function AppNavigator() {
       <Stack.Screen name="JoinConfirm" component={JoinConfirmScreen} />
       <Stack.Screen name="UndianPre" component={UndianScreen} />
       <Stack.Screen name="UndianResult" component={UndianResultScreen} />
+      <Stack.Screen name="RiwayatPemenang" component={RiwayatPemenangScreen} />
       <Stack.Screen name="Bayar" component={PaymentStatusScreen} />
       <Stack.Screen name="PaymentHistory" component={PaymentHistoryScreen} />
       <Stack.Screen name="RequestSwap" component={RequestSwapScreen} />

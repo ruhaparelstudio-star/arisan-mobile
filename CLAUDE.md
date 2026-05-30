@@ -215,6 +215,17 @@ git push origin --delete feature/mo-X-<nama>
 > Claude mengisi bagian ini setelah setiap sesi.
 
 ```
+[MO-4 · 2026-05-30]
+- src/api/undian.ts dibuat: undianApi.start() POST /undian, undianApi.getHistory() GET /winners
+- UndianScreen: candidates real dari API (getGroupDetail + getHistory, filter belum menang)
+- UndianScreen: isKetua dari route param → button "Mulai Undian" hidden untuk anggota biasa
+- RiwayatPemenangScreen: baru, read-only list per periode, empty state, pull-to-refresh
+- UndianResultScreen: hapus MOCK_WINNERS, tambah tombol navigasi ke RiwayatPemenang
+- UndianError dihapus dari types (tidak ada screen), error inline via Alert.alert
+- navigation/types.ts: isKetua di UndianPre, periodeKe di UndianResult, RiwayatPemenang route baru
+- DetailGrupScreen: pass isKetua + current_period saat navigate ke UndianPre
+- TypeScript: 0 errors. Tidak ada dependency baru.
+
 [MO-0 · 2026-05-30]
 - Expo SDK 52 scaffold selesai (manual setup karena folder sudah berisi docs)
 - Design system dari Arisan Hi-Fi.html diimplementasikan: colors.ts, typography.ts, spacing.ts

@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import {
   View, Text, ScrollView, StyleSheet, SafeAreaView, TouchableOpacity,
-  RefreshControl, Alert, Share, Clipboard,
+  RefreshControl, Alert, Share, Clipboard, Modal, TextInput, KeyboardAvoidingView, Platform,
 } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { AppStackParamList } from '../../navigation/types';
@@ -18,7 +18,7 @@ import { OfflineBanner } from '../../components/OfflineBanner';
 import { SkeletonBar } from '../../components/ui/SkeletonBar';
 import { useAuth } from '../../hooks/useAuth';
 import { useNetworkStatus } from '../../hooks/useNetworkStatus';
-import { getGroupDetail, GroupDetail, generateInvite, leaveGroup, disbandGroup } from '../../api/groups';
+import { getGroupDetail, GroupDetail, generateInvite, leaveGroup, disbandGroup, setTanggalPelaksanaan } from '../../api/groups';
 import { cache, CACHE_KEYS } from '../../utils/cache';
 
 type Props = NativeStackScreenProps<AppStackParamList, 'GroupDetail'>;
@@ -52,6 +52,9 @@ export function DetailGrupScreen({ navigation, route }: Props) {
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
   const isKetua = !!group && !!user && group.created_by === user.id;
+  const [showTanggalModal, setShowTanggalModal] = useState(false);
+  const [tanggalInput, setTanggalInput] = useState('');
+  const [tanggalLoading, setTanggalLoading] = useState(false);
 
   const load = useCallback(async (isRefresh = false) => {
     try {
@@ -146,6 +149,26 @@ export function DetailGrupScreen({ navigation, route }: Props) {
         },
       ],
     );
+  };
+
+  const handleTanggalSubmit = async () => {
+    if (!token || !group?.current_period_id) return;
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(tanggalInput)) {
+      Alert.alert('Format Salah', 'Masukkan tanggal dengan format YYYY-MM-DD, contoh: 2026-06-15');
+      return;
+    }
+    setTanggalLoading(true);
+    try {
+      await setTanggalPelaksanaan(token, groupId, group.current_period_id, tanggalInput);
+      setShowTanggalModal(false);
+      setTanggalInput('');
+      Alert.alert('Berhasil', `Tanggal pelaksanaan diset ke ${tanggalInput}`);
+      load();
+    } catch (e: any) {
+      Alert.alert('Gagal', e.message ?? 'Gagal mengatur tanggal.');
+    } finally {
+      setTanggalLoading(false);
+    }
   };
 
   const members = group?.members ?? [];
@@ -309,6 +332,16 @@ export function DetailGrupScreen({ navigation, route }: Props) {
             >
               Generate Invite Baru
             </Btn>
+            {group?.status === 'active' && group?.current_period_id && (
+              <Btn
+                full size="md" variant="outline" icon="calendar"
+                onPress={() => { setTanggalInput(''); setShowTanggalModal(true); }}
+                disabled={!isOnline || actionLoading}
+                style={styles.ketuaBtn}
+              >
+                Atur Tanggal
+              </Btn>
+            )}
             <Btn
               full size="md" variant="outline" icon="alert"
               onPress={handleDisband}
@@ -393,6 +426,38 @@ export function DetailGrupScreen({ navigation, route }: Props) {
           </View>
         </View>
       </ScrollView>
+
+      {/* Modal Atur Tanggal Pelaksanaan */}
+      <Modal visible={showTanggalModal} transparent animationType="fade" onRequestClose={() => setShowTanggalModal(false)}>
+        <KeyboardAvoidingView style={styles.modalOverlay} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+          <View style={styles.modalBox}>
+            <Text style={styles.modalTitle}>Atur Tanggal Pelaksanaan</Text>
+            <Text style={styles.modalSub}>Format: YYYY-MM-DD (contoh: 2026-06-15)</Text>
+            <TextInput
+              style={styles.modalInput}
+              value={tanggalInput}
+              onChangeText={setTanggalInput}
+              placeholder="2026-06-15"
+              placeholderTextColor={Colors.muted}
+              keyboardType="numeric"
+              maxLength={10}
+              autoFocus
+            />
+            <View style={styles.modalActions}>
+              <TouchableOpacity onPress={() => setShowTanggalModal(false)} style={styles.modalCancelBtn}>
+                <Text style={styles.modalCancelLabel}>Batal</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={handleTanggalSubmit}
+                disabled={tanggalLoading || !tanggalInput}
+                style={[styles.modalConfirmBtn, (tanggalLoading || !tanggalInput) && styles.modalConfirmBtnDisabled]}
+              >
+                <Text style={styles.modalConfirmLabel}>{tanggalLoading ? 'Menyimpan...' : 'Simpan'}</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -447,4 +512,15 @@ const styles = StyleSheet.create({
   actWhen: { fontFamily: Fonts.bodyRegular, fontSize: 11.5, color: Colors.muted },
   immutableNote: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7, marginTop: 12 },
   immutableText: { fontFamily: Fonts.bodyRegular, fontSize: 11.5, color: Colors.muted },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'center', alignItems: 'center', padding: 24 },
+  modalBox: { width: '100%', backgroundColor: Colors.bg, borderRadius: 16, padding: 24 },
+  modalTitle: { fontFamily: Fonts.displaySemiBold, fontSize: 17, color: Colors.ink, fontWeight: '600', marginBottom: 4 },
+  modalSub: { fontFamily: Fonts.bodyRegular, fontSize: 13, color: Colors.muted, marginBottom: 16 },
+  modalInput: { height: 48, borderWidth: 1.5, borderRadius: 8, borderColor: Colors.border, paddingHorizontal: 14, fontFamily: Fonts.bodyRegular, fontSize: 15, color: Colors.ink, marginBottom: 20 },
+  modalActions: { flexDirection: 'row', gap: 10 },
+  modalCancelBtn: { flex: 1, height: 46, borderRadius: 10, borderWidth: 1.5, borderColor: Colors.border, alignItems: 'center', justifyContent: 'center' },
+  modalCancelLabel: { fontFamily: Fonts.bodySemiBold, fontSize: 14, color: Colors.ink, fontWeight: '600' },
+  modalConfirmBtn: { flex: 1, height: 46, borderRadius: 10, backgroundColor: Colors.primary, alignItems: 'center', justifyContent: 'center' },
+  modalConfirmBtnDisabled: { opacity: 0.45 },
+  modalConfirmLabel: { fontFamily: Fonts.bodySemiBold, fontSize: 14, color: Colors.white, fontWeight: '600' },
 });

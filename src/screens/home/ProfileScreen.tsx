@@ -1,5 +1,5 @@
-import React from 'react';
-import { View, Text, ScrollView, StyleSheet, SafeAreaView, TouchableOpacity, Linking } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, ScrollView, StyleSheet, SafeAreaView, TouchableOpacity, Linking, Alert } from 'react-native';
 
 const PRIVACY_POLICY_URL = process.env.EXPO_PUBLIC_PRIVACY_POLICY_URL ?? '';
 import { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
@@ -13,6 +13,7 @@ import { Icon } from '../../components/ui/Icon';
 import { Avatar } from '../../components/ui/Avatar';
 import { ListRow } from '../../components/ui/ListRow';
 import { useAuth } from '../../hooks/useAuth';
+import { deleteAccount } from '../../api/auth';
 
 type Props = BottomTabScreenProps<MainTabParamList, 'Profil'>;
 
@@ -26,10 +27,50 @@ const MENU = [
 ];
 
 export function ProfileScreen({ navigation }: Props) {
-  const { user, logout } = useAuth();
+  const { user, logout, token } = useAuth();
+  const [deletingAccount, setDeletingAccount] = useState(false);
 
   const handleLogout = async () => {
     await logout();
+  };
+
+  const handleDeleteAccount = () => {
+    Alert.alert(
+      'Hapus Akun',
+      'Data kamu akan dianonimkan sesuai UU PDP. Kamu tidak bisa login lagi setelah ini.',
+      [
+        { text: 'Batal', style: 'cancel' },
+        {
+          text: 'Lanjutkan',
+          style: 'destructive',
+          onPress: () => {
+            Alert.alert(
+              'Konfirmasi Final',
+              'Yakin ingin menghapus akun? Aksi ini tidak bisa dibatalkan.',
+              [
+                { text: 'Batal', style: 'cancel' },
+                {
+                  text: 'Ya, Hapus Akun Saya',
+                  style: 'destructive',
+                  onPress: async () => {
+                    if (!token) return;
+                    setDeletingAccount(true);
+                    try {
+                      await deleteAccount(token);
+                      await logout();
+                    } catch (e: any) {
+                      Alert.alert('Gagal', e.message ?? 'Gagal menghapus akun. Coba lagi.');
+                    } finally {
+                      setDeletingAccount(false);
+                    }
+                  },
+                },
+              ],
+            );
+          },
+        },
+      ],
+    );
   };
 
   return (
@@ -92,6 +133,15 @@ export function ProfileScreen({ navigation }: Props) {
           <Icon name="logout" size={19} color={Colors.danger} />
           <Text style={styles.logoutText}>Keluar</Text>
         </TouchableOpacity>
+
+        <TouchableOpacity
+          onPress={handleDeleteAccount}
+          disabled={deletingAccount}
+          style={[styles.deleteBtn, deletingAccount && styles.deleteBtnDisabled]}
+        >
+          <Icon name="trash" size={16} color={Colors.muted} />
+          <Text style={styles.deleteText}>{deletingAccount ? 'Menghapus...' : 'Hapus Akun'}</Text>
+        </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>
   );
@@ -116,4 +166,7 @@ const styles = StyleSheet.create({
   menuValue: { fontFamily: Fonts.bodyRegular, fontSize: 13, color: Colors.muted },
   logoutBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, color: Colors.danger, padding: 12, marginTop: 18 },
   logoutText: { fontFamily: Fonts.bodySemiBold, fontSize: 14.5, color: Colors.danger, fontWeight: '600' },
+  deleteBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, padding: 10, marginTop: 4, marginBottom: 8 },
+  deleteBtnDisabled: { opacity: 0.5 },
+  deleteText: { fontFamily: Fonts.bodyRegular, fontSize: 12.5, color: Colors.muted },
 });

@@ -60,3 +60,7 @@ export function updatePushToken(token: string, pushToken: string): Promise<{ mes
     token,
   });
 }
+
+export function deleteAccount(token: string): Promise<{ message: string }> {
+  return apiCall('/api/users/me', { method: 'DELETE', token });
+}

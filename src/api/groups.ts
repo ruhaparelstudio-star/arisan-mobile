@@ -168,3 +168,16 @@ export function disbandGroup(token: string, groupId: string): Promise<{ message:
     token,
   });
 }
+
+export function setTanggalPelaksanaan(
+  token: string,
+  groupId: string,
+  periodId: string,
+  tanggal: string,
+): Promise<{ tanggal_pelaksanaan: string; jatuh_tempo: string }> {
+  return apiCall(`/api/groups/${groupId}/periods/${periodId}/tanggal`, {
+    method: 'PUT',
+    body: JSON.stringify({ tanggal_pelaksanaan: tanggal }),
+    token,
+  });
+}

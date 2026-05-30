@@ -1,17 +1,47 @@
-import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { Animated, Text, StyleSheet } from 'react-native';
 import { useNetworkStatus } from '../hooks/useNetworkStatus';
 import { Colors } from '../theme/colors';
 import { Fonts } from '../theme/typography';
 
 export function OfflineBanner() {
   const isOnline = useNetworkStatus();
-  if (isOnline) return null;
+  const [visible, setVisible] = useState(false);
+  const translateY = useRef(new Animated.Value(-36)).current;
+  const opacity = useRef(new Animated.Value(0)).current;
+  const hasEffectRun = useRef(false);
+
+  useEffect(() => {
+    if (!hasEffectRun.current) {
+      hasEffectRun.current = true;
+      if (!isOnline) {
+        setVisible(true);
+        translateY.setValue(0);
+        opacity.setValue(1);
+      }
+      return;
+    }
+
+    if (!isOnline) {
+      setVisible(true);
+      Animated.parallel([
+        Animated.timing(translateY, { toValue: 0, duration: 220, useNativeDriver: true }),
+        Animated.timing(opacity, { toValue: 1, duration: 180, useNativeDriver: true }),
+      ]).start();
+    } else {
+      Animated.parallel([
+        Animated.timing(translateY, { toValue: -36, duration: 250, useNativeDriver: true }),
+        Animated.timing(opacity, { toValue: 0, duration: 200, useNativeDriver: true }),
+      ]).start(() => setVisible(false));
+    }
+  }, [isOnline]);
+
+  if (!visible) return null;
 
   return (
-    <View style={styles.banner}>
+    <Animated.View style={[styles.banner, { transform: [{ translateY }], opacity }]}>
       <Text style={styles.text}>Kamu sedang offline. Menampilkan data terakhir.</Text>
-    </View>
+    </Animated.View>
   );
 }
 

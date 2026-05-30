@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { SkeletonBar } from '../../components/ui/SkeletonBar';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { AppStackParamList } from '../../navigation/types';
@@ -159,9 +160,31 @@ export function PaymentStatusScreen({ navigation, route }: Props) {
       <OfflineBanner />
 
       {loading ? (
-        <View style={styles.center}>
-          <ActivityIndicator color={Colors.primary} size="large" />
-        </View>
+        <ScrollView contentContainerStyle={styles.body}>
+          {/* due date skeleton */}
+          <SkeletonBar height={44} borderRadius={10} />
+          {/* progress skeleton */}
+          <View style={styles.progressSection}>
+            <View style={styles.progressHeader}>
+              <SkeletonBar width="55%" height={13} />
+              <SkeletonBar width={40} height={13} />
+            </View>
+            <SkeletonBar height={8} borderRadius={999} />
+          </View>
+          {/* member rows skeleton */}
+          <Card pad={6} style={styles.memberCard}>
+            {[0, 1, 2, 3].map((i) => (
+              <View key={i} style={[styles.memberRow, i < 3 && styles.memberBorder]}>
+                <SkeletonBar width={38} height={38} borderRadius={19} />
+                <View style={styles.flex}>
+                  <SkeletonBar width="50%" height={13} style={{ marginBottom: 6 }} />
+                  <SkeletonBar width="35%" height={11} />
+                </View>
+                <SkeletonBar width={62} height={24} borderRadius={8} />
+              </View>
+            ))}
+          </Card>
+        </ScrollView>
       ) : error ? (
         <View style={styles.center}>
           <Text style={styles.errorText}>{error}</Text>

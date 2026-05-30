@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   View, Text, ScrollView, StyleSheet, SafeAreaView, TouchableOpacity,
   RefreshControl, Alert, Share, Clipboard,
@@ -15,10 +15,11 @@ import { Icon } from '../../components/ui/Icon';
 import { SectionLabel } from '../../components/ui/SectionLabel';
 import { AnggotaItem } from '../../components/AnggotaItem';
 import { OfflineBanner } from '../../components/OfflineBanner';
+import { SkeletonBar } from '../../components/ui/SkeletonBar';
 import { useAuth } from '../../hooks/useAuth';
 import { useNetworkStatus } from '../../hooks/useNetworkStatus';
 import { getGroupDetail, GroupDetail, generateInvite, leaveGroup, disbandGroup } from '../../api/groups';
-import { cache } from '../../utils/cache';
+import { cache, CACHE_KEYS } from '../../utils/cache';
 
 type Props = NativeStackScreenProps<AppStackParamList, 'GroupDetail'>;
 
@@ -35,35 +36,50 @@ const ACTIVITY_MOCK = [
   { icon: 'swap', tone: 'blue', text: 'Request tukar giliran', when: '8 Jun' },
 ];
 
+function fmtLastUpdated(d: Date): string {
+  return d.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) +
+    ', ' + d.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' });
+}
+
 export function DetailGrupScreen({ navigation, route }: Props) {
   const { groupId, groupName } = route.params;
   const { token, user } = useAuth();
   const isOnline = useNetworkStatus();
   const [group, setGroup] = useState<GroupDetail | null>(null);
+  const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
   const isKetua = !!group && !!user && group.created_by === user.id;
 
-  const load = async (isRefresh = false) => {
+  const load = useCallback(async (isRefresh = false) => {
     try {
       if (token && isOnline) {
         const data = await getGroupDetail(token, groupId);
         setGroup(data);
-        await cache.set(`group_detail_${groupId}`, data);
+        setLastUpdated(new Date());
+        await cache.set(CACHE_KEYS.groupDetail(groupId), data);
       } else {
-        const cached = await cache.get<GroupDetail>(`group_detail_${groupId}`);
-        if (cached) setGroup(cached.data);
+        const cached = await cache.get<GroupDetail>(CACHE_KEYS.groupDetail(groupId));
+        if (cached) {
+          setGroup(cached.data);
+          setLastUpdated(new Date());
+        }
       }
     } catch {
-      const cached = await cache.get<GroupDetail>(`group_detail_${groupId}`);
-      if (cached) setGroup(cached.data);
+      const cached = await cache.get<GroupDetail>(CACHE_KEYS.groupDetail(groupId));
+      if (cached) {
+        setGroup(cached.data);
+        setLastUpdated(new Date());
+      }
     } finally {
+      setLoading(false);
       if (isRefresh) setRefreshing(false);
     }
-  };
+  }, [token, groupId, isOnline]);
 
-  useEffect(() => { load(); }, [groupId]);
+  useEffect(() => { load(); }, [load]);
 
   const onRefresh = () => { setRefreshing(true); load(true); };
 
@@ -133,6 +149,42 @@ export function DetailGrupScreen({ navigation, route }: Props) {
   };
 
   const members = group?.members ?? [];
+
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.safe}>
+        <AppBar onBack={() => navigation.goBack()} title="Detail Grup" />
+        <ScrollView contentContainerStyle={styles.body}>
+          {/* identity skeleton */}
+          <View style={[styles.identity, { marginBottom: 16 }]}>
+            <SkeletonBar width={52} height={52} borderRadius={16} />
+            <View style={styles.flex}>
+              <SkeletonBar width="55%" height={14} style={{ marginBottom: 9 }} />
+              <SkeletonBar width="70%" height={11} />
+            </View>
+          </View>
+          {/* status card skeleton */}
+          <SkeletonBar height={112} borderRadius={12} style={{ marginBottom: 16 }} />
+          {/* quick actions skeleton */}
+          <View style={{ flexDirection: 'row', gap: 10, marginBottom: 16 }}>
+            {[0, 1, 2, 3].map((i) => (
+              <SkeletonBar key={i} style={{ flex: 1 }} height={72} borderRadius={16} />
+            ))}
+          </View>
+          {/* section header skeleton */}
+          <SkeletonBar width={160} height={13} style={{ marginBottom: 12 }} />
+          {/* member grid skeleton */}
+          <Card>
+            <View style={styles.memberGrid}>
+              {[0, 1, 2, 3, 4, 5].map((i) => (
+                <SkeletonBar key={i} width={58} height={70} borderRadius={14} />
+              ))}
+            </View>
+          </Card>
+        </ScrollView>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -282,6 +334,18 @@ export function DetailGrupScreen({ navigation, route }: Props) {
           </Btn>
         )}
 
+        {/* Offline tooltip untuk aksi kritis */}
+        {!isOnline && (
+          <Text style={styles.offlineHint}>Butuh koneksi internet untuk melakukan aksi ini.</Text>
+        )}
+
+        {/* Stale label */}
+        {!isOnline && lastUpdated && (
+          <Text style={styles.staleLabel}>
+            Data terakhir diperbarui: {fmtLastUpdated(lastUpdated)}
+          </Text>
+        )}
+
         {/* Member Status */}
         <View style={styles.section}>
           <SectionLabel
@@ -367,10 +431,12 @@ const styles = StyleSheet.create({
   quickBtnPrimary: { backgroundColor: Colors.primary, borderWidth: 0, shadowColor: Colors.primaryShadow, shadowOffset: { width: 0, height: 8 }, shadowOpacity: 1, shadowRadius: 12, elevation: 6 },
   quickLabel: { fontFamily: Fonts.bodySemiBold, fontSize: 12, color: Colors.ink, fontWeight: '600' },
   quickLabelPrimary: { color: Colors.white },
-  ketuaActions: { gap: 8, marginBottom: 20 },
+  ketuaActions: { gap: 8, marginBottom: 8 },
   ketuaBtn: { borderColor: Colors.border },
   destructiveBtn: { borderColor: Colors.dangerTint },
-  leaveBtn: { borderColor: Colors.dangerTint, marginBottom: 20 },
+  leaveBtn: { borderColor: Colors.dangerTint, marginBottom: 8 },
+  offlineHint: { fontFamily: Fonts.bodyRegular, fontSize: 12, color: Colors.muted, textAlign: 'center', marginTop: 8, marginBottom: 4 },
+  staleLabel: { fontFamily: Fonts.bodyRegular, fontSize: 11.5, color: Colors.muted, textAlign: 'center', marginBottom: 16 },
   section: { marginBottom: 22 },
   seeAll: { fontFamily: Fonts.bodySemiBold, fontSize: 13, color: Colors.primaryInk, fontWeight: '600' },
   memberGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 14 },

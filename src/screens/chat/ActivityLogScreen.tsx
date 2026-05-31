@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, FlatList, ActivityIndicator, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, FlatList, ActivityIndicator, TouchableOpacity } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { AppStackParamList } from '../../navigation/types';
 import { Colors } from '../../theme/colors';
@@ -83,7 +84,7 @@ export function ActivityLogScreen({ navigation, route }: Props) {
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.safe}>
+      <SafeAreaView edges={['top']} style={styles.safe}>
         <AppBar title="Log Aktivitas" sub={groupName} onBack={() => navigation.goBack()} />
         <View style={styles.centered}>
           <ActivityIndicator color={Colors.primary} size="large" />
@@ -94,7 +95,7 @@ export function ActivityLogScreen({ navigation, route }: Props) {
 
   if (error) {
     return (
-      <SafeAreaView style={styles.safe}>
+      <SafeAreaView edges={['top']} style={styles.safe}>
         <AppBar title="Log Aktivitas" sub={groupName} onBack={() => navigation.goBack()} />
         <View style={styles.centered}>
           <Text style={styles.errorText}>{error}</Text>
@@ -108,7 +109,7 @@ export function ActivityLogScreen({ navigation, route }: Props) {
 
   if (entries.length === 0) {
     return (
-      <SafeAreaView style={styles.safe}>
+      <SafeAreaView edges={['top']} style={styles.safe}>
         <AppBar title="Log Aktivitas" sub={groupName} onBack={() => navigation.goBack()} />
         <StateView
           icon="activity"
@@ -121,7 +122,7 @@ export function ActivityLogScreen({ navigation, route }: Props) {
   }
 
   return (
-    <SafeAreaView style={styles.safe}>
+    <SafeAreaView edges={['top']} style={styles.safe}>
       <AppBar title="Log Aktivitas" sub={groupName} onBack={() => navigation.goBack()} />
       <FlatList
         data={entries}

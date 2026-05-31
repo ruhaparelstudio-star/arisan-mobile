@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, ScrollView, ActivityIndicator, RefreshControl } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, ActivityIndicator, RefreshControl } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { AppStackParamList } from '../../navigation/types';
 import { Colors } from '../../theme/colors';
@@ -54,7 +55,7 @@ export function RiwayatPemenangScreen({ navigation, route }: Props) {
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.safe}>
+      <SafeAreaView edges={['top']} style={styles.safe}>
         <AppBar title="Riwayat Pemenang" onBack={() => navigation.goBack()} />
         <View style={styles.center}>
           <ActivityIndicator size="large" color={Colors.primary} />
@@ -65,7 +66,7 @@ export function RiwayatPemenangScreen({ navigation, route }: Props) {
 
   if (error) {
     return (
-      <SafeAreaView style={styles.safe}>
+      <SafeAreaView edges={['top']} style={styles.safe}>
         <AppBar title="Riwayat Pemenang" onBack={() => navigation.goBack()} />
         <StateView
           icon="trophy"
@@ -81,7 +82,7 @@ export function RiwayatPemenangScreen({ navigation, route }: Props) {
 
   if (winners.length === 0) {
     return (
-      <SafeAreaView style={styles.safe}>
+      <SafeAreaView edges={['top']} style={styles.safe}>
         <AppBar title="Riwayat Pemenang" onBack={() => navigation.goBack()} />
         <StateView
           icon="trophy"
@@ -94,7 +95,7 @@ export function RiwayatPemenangScreen({ navigation, route }: Props) {
   }
 
   return (
-    <SafeAreaView style={styles.safe}>
+    <SafeAreaView edges={['top']} style={styles.safe}>
       <AppBar title="Riwayat Pemenang" onBack={() => navigation.goBack()} />
       <ScrollView
         contentContainerStyle={styles.body}

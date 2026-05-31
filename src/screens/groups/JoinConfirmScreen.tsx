@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, ScrollView, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, ActivityIndicator } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { AppStackParamList } from '../../navigation/types';
 import { Colors } from '../../theme/colors';
@@ -45,7 +46,7 @@ export function JoinConfirmScreen({ navigation, route }: Props) {
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.safe}>
+      <SafeAreaView edges={['top']} style={styles.safe}>
         <AppBar title="Konfirmasi Gabung" onBack={() => navigation.goBack()} />
         <View style={styles.loadingWrap}>
           <ActivityIndicator color={Colors.primary} size="large" />
@@ -56,7 +57,7 @@ export function JoinConfirmScreen({ navigation, route }: Props) {
 
   if (error || !group) {
     return (
-      <SafeAreaView style={styles.safe}>
+      <SafeAreaView edges={['top']} style={styles.safe}>
         <AppBar title="Konfirmasi Gabung" onBack={() => navigation.goBack()} />
         <View style={styles.loadingWrap}>
           <Text style={styles.errorText}>{error || 'Grup tidak ditemukan.'}</Text>
@@ -74,43 +75,44 @@ export function JoinConfirmScreen({ navigation, route }: Props) {
   ];
 
   return (
-    <SafeAreaView style={styles.safe}>
+    <SafeAreaView edges={['top']} style={styles.safe}>
       <AppBar title="Konfirmasi Gabung" onBack={() => navigation.goBack()} />
       <ScrollView contentContainerStyle={styles.body}>
-        <Text style={styles.preTitle}>Kamu akan bergabung ke:</Text>
-        <Card accent tint pad={18}>
-          <View style={styles.groupHeader}>
-            <View style={styles.groupIcon}>
-              <Icon name="users" size={26} color={Colors.white} strokeWidth={2} />
+        <View>
+          <Text style={styles.preTitle}>Kamu akan bergabung ke:</Text>
+          <Card accent tint pad={18}>
+            <View style={styles.groupHeader}>
+              <View style={styles.groupIcon}>
+                <Icon name="users" size={26} color={Colors.white} strokeWidth={2} />
+              </View>
+              <View>
+                <Text style={styles.groupName}>{group.name}</Text>
+                <Text style={styles.groupMeta}>{group.member_count} anggota</Text>
+              </View>
             </View>
-            <View>
-              <Text style={styles.groupName}>{group.name}</Text>
-              <Text style={styles.groupMeta}>{group.member_count} anggota</Text>
-            </View>
+          </Card>
+
+          <Card style={styles.rowsCard} pad={6}>
+            {ROWS.map(([k, v], i) => (
+              <ListRow
+                key={k}
+                title={k}
+                lastChild={i === ROWS.length - 1}
+                right={<Text style={styles.rowVal}>{v}</Text>}
+              />
+            ))}
+          </Card>
+
+          <View style={styles.warning}>
+            <Icon name="alert" size={20} color={Colors.amberInk} />
+            <Text style={styles.warningText}>
+              Dengan gabung, kamu berkomitmen bayar Rp {group.nominal.toLocaleString('id')} setiap periode selama {group.total_periods} periode.
+            </Text>
           </View>
-        </Card>
 
-        <Card style={styles.rowsCard} pad={6}>
-          {ROWS.map(([k, v], i) => (
-            <ListRow
-              key={k}
-              title={k}
-              lastChild={i === ROWS.length - 1}
-              right={<Text style={styles.rowVal}>{v}</Text>}
-            />
-          ))}
-        </Card>
-
-        <View style={styles.warning}>
-          <Icon name="alert" size={20} color={Colors.amberInk} />
-          <Text style={styles.warningText}>
-            Dengan gabung, kamu berkomitmen bayar Rp {group.nominal.toLocaleString('id')} setiap periode selama {group.total_periods} periode.
-          </Text>
+          {error ? <Text style={styles.errorText}>{error}</Text> : null}
         </View>
 
-        {error ? <Text style={styles.errorText}>{error}</Text> : null}
-
-        <View style={styles.flex} />
         <View style={styles.btnRow}>
           <Btn variant="outline" size="lg" onPress={() => navigation.goBack()} style={styles.flex}>
             Batal
@@ -128,7 +130,7 @@ const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: Colors.bg },
   flex: { flex: 1 },
   flex2: { flex: 2 },
-  body: { flexGrow: 1, paddingHorizontal: 22, paddingBottom: 24 },
+  body: { flexGrow: 1, paddingHorizontal: 22, paddingBottom: 24, justifyContent: 'space-between' },
   loadingWrap: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   preTitle: { fontFamily: Fonts.bodyRegular, fontSize: 13.5, color: Colors.muted, marginBottom: 12 },
   groupHeader: { flexDirection: 'row', alignItems: 'center', gap: 14 },

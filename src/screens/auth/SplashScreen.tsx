@@ -3,10 +3,10 @@ import {
   View,
   Text,
   StyleSheet,
-  SafeAreaView,
   TouchableOpacity,
   Linking,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 const PRIVACY_POLICY_URL = process.env.EXPO_PUBLIC_PRIVACY_POLICY_URL ?? '';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -29,7 +29,7 @@ const AVATARS = [
 
 export function SplashScreen({ navigation }: Props) {
   return (
-    <SafeAreaView style={styles.safe}>
+    <SafeAreaView edges={['top']} style={styles.safe}>
       <View style={styles.skip}>
         <TouchableOpacity onPress={() => navigation.navigate('PhoneInput')}>
           <Text style={styles.skipText}>Lewati</Text>
@@ -79,16 +79,7 @@ export function SplashScreen({ navigation }: Props) {
           onPress={() => navigation.navigate('PhoneInput')}
           style={styles.cta}
         >
-          Mulai sekarang
-        </Btn>
-        <Btn
-          full
-          size="lg"
-          variant="outline"
-          onPress={() => navigation.navigate('PhoneInput')}
-          style={styles.ctaSecondary}
-        >
-          Sudah punya akun
+          Mulai
         </Btn>
 
         <Text style={styles.privacyNote}>
@@ -184,7 +175,6 @@ const styles = StyleSheet.create({
   dotActive: { width: 26, backgroundColor: Colors.primary },
   flex: { flex: 1 },
   cta: { marginTop: 24 },
-  ctaSecondary: { marginTop: 10 },
   privacyNote: {
     fontFamily: Fonts.bodyRegular,
     fontSize: 12,

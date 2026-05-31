@@ -1,5 +1,6 @@
-import React, { useEffect, useState } from 'react';
-import { View, ScrollView, StyleSheet, SafeAreaView, TouchableOpacity } from 'react-native';
+import React, { useEffect, useState, useCallback } from 'react';
+import { View, ScrollView, StyleSheet, TouchableOpacity, RefreshControl } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { CompositeScreenProps } from '@react-navigation/native';
 import { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -11,7 +12,7 @@ import { GrupCard } from '../../components/GrupCard';
 import { StateView } from '../../components/ui/StateView';
 import { Icon } from '../../components/ui/Icon';
 import { useAuth } from '../../hooks/useAuth';
-import { getMyGroups, Group } from '../../api/groups';
+import { getMyGroups, getGroupDetail, Group, GroupDetail } from '../../api/groups';
 import { cache, CACHE_KEYS } from '../../utils/cache';
 
 type Props = CompositeScreenProps<
@@ -19,28 +20,56 @@ type Props = CompositeScreenProps<
   NativeStackScreenProps<AppStackParamList>
 >;
 
+interface RichGroup {
+  base: Group;
+  detail: GroupDetail | null;
+}
+
+function formatNominal(n: number): string {
+  if (n >= 1_000_000) return `Rp ${(n / 1_000_000).toFixed(0)}jt`;
+  if (n >= 1_000) return `Rp ${Math.round(n / 1_000)}rb`;
+  return `Rp ${n.toLocaleString('id')}`;
+}
+
 export function GroupsScreen({ navigation }: Props) {
-  const { token } = useAuth();
-  const [groups, setGroups] = useState<Group[]>([]);
+  const { token, user } = useAuth();
+  const [groups, setGroups] = useState<RichGroup[]>([]);
   const [filter, setFilter] = useState('Semua');
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
-  useEffect(() => {
+  const load = useCallback(async (isRefresh = false) => {
     if (!token) return;
-    getMyGroups(token)
-      .then((data) => { setGroups(data); cache.set(CACHE_KEYS.GROUPS_LIST, data); })
-      .catch(async () => {
-        const cached = await cache.get<Group[]>(CACHE_KEYS.GROUPS_LIST);
-        if (cached) setGroups(cached.data);
-      })
-      .finally(() => setLoading(false));
+    try {
+      const list = await getMyGroups(token);
+      cache.set(CACHE_KEYS.GROUPS_LIST, list);
+      // Load details in parallel for member count and current period
+      const details = await Promise.all(
+        list.map((g) => getGroupDetail(token, g.id).catch(() => null)),
+      );
+      setGroups(list.map((g, i) => ({ base: g, detail: details[i] })));
+    } catch {
+      const cached = await cache.get<Group[]>(CACHE_KEYS.GROUPS_LIST);
+      if (cached) setGroups(cached.data.map((g) => ({ base: g, detail: null })));
+    } finally {
+      setLoading(false);
+      if (isRefresh) setRefreshing(false);
+    }
   }, [token]);
 
-  const filtered = groups; // TODO: filter by role when API supports it
+  useEffect(() => { load(); }, [load]);
+
+  const onRefresh = () => { setRefreshing(true); load(true); };
+
+  const filtered = groups.filter((g) => {
+    if (filter === 'Sebagai ketua') return g.base.created_by === user?.id;
+    if (filter === 'Anggota') return g.base.created_by !== user?.id;
+    return true;
+  });
 
   if (!loading && groups.length === 0) {
     return (
-      <SafeAreaView style={styles.safe}>
+      <SafeAreaView edges={['top']} style={styles.safe}>
         <AppBar large title="Grup kamu" />
         <StateView
           icon="users"
@@ -57,7 +86,7 @@ export function GroupsScreen({ navigation }: Props) {
   }
 
   return (
-    <SafeAreaView style={styles.safe}>
+    <SafeAreaView edges={['top']} style={styles.safe}>
       <AppBar
         large
         title="Grup kamu"
@@ -70,25 +99,40 @@ export function GroupsScreen({ navigation }: Props) {
           </TouchableOpacity>
         }
       />
-      <ScrollView contentContainerStyle={styles.body}>
+      <ScrollView
+        contentContainerStyle={styles.body}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.primary} />}
+      >
         <Segmented
           options={['Semua', 'Sebagai ketua', 'Anggota']}
           value={filter}
           onChange={setFilter}
         />
         <View style={styles.list}>
-          {filtered.map((g) => (
-            <GrupCard
-              key={g.id}
-              name={g.name}
-              initial={g.name[0]}
-              members={0}
-              nominal={`Rp ${g.nominal.toLocaleString('id')}`}
-              periode="Periode 1"
-              due={3}
-              onPress={() => navigation.navigate('GroupDetail', { groupId: g.id, groupName: g.name })}
-            />
-          ))}
+          {filtered.map(({ base: g, detail }) => {
+            const memberCount = detail?.members.length ?? 0;
+            const currentPeriod = detail?.current_period;
+            const periodeLabel = currentPeriod
+              ? `Periode ${currentPeriod} / ${g.total_periods}`
+              : g.status === 'completed'
+              ? `${g.total_periods} periode selesai`
+              : 'Belum dimulai';
+            const role = g.created_by === user?.id ? 'Ketua' : undefined;
+            const due: number | 'paid' = g.status === 'completed' ? 'paid' : 3;
+            return (
+              <GrupCard
+                key={g.id}
+                name={g.name}
+                initial={g.name[0]}
+                members={memberCount}
+                nominal={formatNominal(g.nominal)}
+                periode={periodeLabel}
+                due={due}
+                role={role}
+                onPress={() => navigation.navigate('GroupDetail', { groupId: g.id, groupName: g.name })}
+              />
+            );
+          })}
         </View>
       </ScrollView>
     </SafeAreaView>

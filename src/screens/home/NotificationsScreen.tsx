@@ -4,10 +4,10 @@ import {
   Text,
   ScrollView,
   StyleSheet,
-  SafeAreaView,
   TouchableOpacity,
   RefreshControl,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
 import { MainTabParamList } from '../../navigation/types';
 import { Colors } from '../../theme/colors';
@@ -17,8 +17,16 @@ import { Card } from '../../components/ui/Card';
 import { Pill } from '../../components/ui/Pill';
 import { Icon } from '../../components/ui/Icon';
 import { StateView } from '../../components/ui/StateView';
+import { Btn } from '../../components/ui/Button';
 import { useAuth } from '../../hooks/useAuth';
 import { getNotifications, markAllRead, markRead, Notification } from '../../api/notifications';
+
+const CTA_MAP: Record<string, string> = {
+  payment_due: 'Bayar',
+  undian_done: 'Lihat',
+  swap_request: 'Tinjau',
+  swap_approved: 'Lihat',
+};
 
 type Props = BottomTabScreenProps<MainTabParamList, 'Notifikasi'>;
 
@@ -101,7 +109,7 @@ export function NotificationsScreen({ navigation }: Props) {
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.safe}>
+      <SafeAreaView edges={['top']} style={styles.safe}>
         <AppBar large title="Notifikasi" />
         <View style={styles.centered}>
           <Text style={styles.loadingText}>Memuat notifikasi...</Text>
@@ -112,7 +120,7 @@ export function NotificationsScreen({ navigation }: Props) {
 
   if (error) {
     return (
-      <SafeAreaView style={styles.safe}>
+      <SafeAreaView edges={['top']} style={styles.safe}>
         <AppBar large title="Notifikasi" />
         <View style={styles.centered}>
           <Text style={styles.errorText}>{error}</Text>
@@ -126,7 +134,7 @@ export function NotificationsScreen({ navigation }: Props) {
 
   if (notifs.length === 0) {
     return (
-      <SafeAreaView style={styles.safe}>
+      <SafeAreaView edges={['top']} style={styles.safe}>
         <AppBar large title="Notifikasi" />
         <StateView
           icon="bell"
@@ -139,7 +147,7 @@ export function NotificationsScreen({ navigation }: Props) {
   }
 
   return (
-    <SafeAreaView style={styles.safe}>
+    <SafeAreaView edges={['top']} style={styles.safe}>
       <AppBar
         large
         title="Notifikasi"
@@ -162,25 +170,37 @@ export function NotificationsScreen({ navigation }: Props) {
               <Pill tone="amber" style={styles.countPill}>{unread.length}</Pill>
             </View>
             <Card pad={6} style={styles.card}>
-              {unread.map((n, i) => (
-                <TouchableOpacity
-                  key={n.id}
-                  style={[styles.notifRow, i < unread.length - 1 && styles.divider]}
-                  onPress={() => handleMarkOne(n.id)}
-                  activeOpacity={0.7}
-                >
-                  <NotifIcon type={n.type} />
-                  <View style={styles.notifContent}>
-                    <View style={styles.notifTopRow}>
-                      <Text style={styles.notifTitle}>{n.title}</Text>
-                      <Text style={styles.notifWhen}>
-                        {new Date(n.created_at).toLocaleTimeString('id', { hour: '2-digit', minute: '2-digit' })}
-                      </Text>
+              {unread.map((n, i) => {
+                const cta = CTA_MAP[n.type];
+                return (
+                  <View
+                    key={n.id}
+                    style={[styles.notifRow, i < unread.length - 1 && styles.divider]}
+                  >
+                    <NotifIcon type={n.type} />
+                    <View style={styles.notifContent}>
+                      <View style={styles.notifTopRow}>
+                        <Text style={styles.notifTitle}>{n.title}</Text>
+                        <Text style={styles.notifWhen}>
+                          {new Date(n.created_at).toLocaleTimeString('id', { hour: '2-digit', minute: '2-digit' })}
+                        </Text>
+                      </View>
+                      <Text style={styles.notifBody}>{n.body}</Text>
+                      {cta ? (
+                        <View style={styles.ctaWrap}>
+                          <Btn
+                            size="sm"
+                            variant={i === 0 ? 'primary' : 'soft'}
+                            onPress={() => handleMarkOne(n.id)}
+                          >
+                            {cta}
+                          </Btn>
+                        </View>
+                      ) : null}
                     </View>
-                    <Text style={styles.notifBody}>{n.body}</Text>
                   </View>
-                </TouchableOpacity>
-              ))}
+                );
+              })}
             </Card>
           </>
         )}
@@ -233,5 +253,6 @@ const styles = StyleSheet.create({
   notifTitleRead: { fontWeight: '400' as never, color: Colors.muted, fontFamily: Fonts.bodyRegular },
   notifWhen: { fontFamily: Fonts.bodyRegular, fontSize: 11.5, color: Colors.muted, flexShrink: 0 },
   notifBody: { fontFamily: Fonts.bodyRegular, fontSize: 12.5, color: Colors.muted, lineHeight: 18, marginTop: 2 },
+  ctaWrap: { marginTop: 8 },
   olderLabel: { fontFamily: Fonts.bodyBold, fontSize: 12.5, color: Colors.muted, letterSpacing: 0.3, marginBottom: 10, marginTop: 4, fontWeight: '700' },
 });

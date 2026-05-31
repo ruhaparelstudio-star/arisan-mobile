@@ -174,9 +174,9 @@ export function HomeScreen({ navigation }: Props) {
                   </Btn>
                   <Btn
                     size="sm"
-                    variant="primary"
+                    variant="ghost"
                     style={styles.paidBtn}
-                    textStyle={{ color: Colors.white, fontWeight: '700' }}
+                    textStyle={{ color: Colors.white, fontWeight: '600' }}
                   >
                     Sudah bayar
                   </Btn>
@@ -284,7 +284,7 @@ const styles = StyleSheet.create({
   heroActions: { flexDirection: 'row', gap: 10, marginTop: 18 },
   heroOutlineBtn: { backgroundColor: 'rgba(255,255,255,0.18)', borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.45)' },
   heroOutlineBtnText: { color: Colors.white, fontWeight: '600' },
-  paidBtn: { backgroundColor: Colors.primaryDeep, shadowColor: 'transparent', elevation: 0 },
+  paidBtn: { borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.5)', backgroundColor: 'transparent' },
   section: { marginBottom: 16 },
   seeAll: { fontFamily: Fonts.bodySemiBold, fontSize: 13, color: Colors.primaryInk, fontWeight: '600' },
   groupIcon: { width: 46, height: 46, borderRadius: 14, backgroundColor: Colors.primaryTint, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },

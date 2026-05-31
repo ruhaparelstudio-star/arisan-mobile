@@ -3,13 +3,13 @@ import {
   View,
   Text,
   StyleSheet,
-  SafeAreaView,
   ScrollView,
   TouchableOpacity,
   Alert,
   ActivityIndicator,
   RefreshControl,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { AppStackParamList } from '../../navigation/types';
 import { Colors } from '../../theme/colors';
@@ -45,7 +45,7 @@ export function SwapInboxScreen({ navigation }: Props) {
   const [actionId, setActionId] = useState<string | null>(null);
 
   const load = useCallback(async (isRefresh = false) => {
-    if (!token) return;
+    if (!token || !user?.id) return;
     if (isRefresh) setRefreshing(true);
     else setLoading(true);
     setErrorMsg('');
@@ -106,7 +106,7 @@ export function SwapInboxScreen({ navigation }: Props) {
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.safe}>
+      <SafeAreaView edges={['top']} style={styles.safe}>
         <AppBar title="Inbox Tukar Giliran" onBack={() => navigation.goBack()} />
         <View style={styles.center}>
           <ActivityIndicator size="large" color={Colors.primary} />
@@ -117,7 +117,7 @@ export function SwapInboxScreen({ navigation }: Props) {
 
   if (errorMsg) {
     return (
-      <SafeAreaView style={styles.safe}>
+      <SafeAreaView edges={['top']} style={styles.safe}>
         <AppBar title="Inbox Tukar Giliran" onBack={() => navigation.goBack()} />
         <StateView
           icon="alert"
@@ -132,7 +132,7 @@ export function SwapInboxScreen({ navigation }: Props) {
   }
 
   return (
-    <SafeAreaView style={styles.safe}>
+    <SafeAreaView edges={['top']} style={styles.safe}>
       <AppBar title="Inbox Tukar Giliran" onBack={() => navigation.goBack()} />
       <ScrollView
         contentContainerStyle={swaps.length === 0 ? styles.emptyScroll : styles.body}

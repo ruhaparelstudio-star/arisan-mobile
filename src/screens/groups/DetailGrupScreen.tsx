@@ -1,8 +1,9 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import {
-  View, Text, ScrollView, StyleSheet, SafeAreaView, TouchableOpacity,
+  View, Text, ScrollView, StyleSheet, TouchableOpacity,
   RefreshControl, Alert, Share, Clipboard, Modal, TextInput, KeyboardAvoidingView, Platform,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { AppStackParamList } from '../../navigation/types';
 import { Colors } from '../../theme/colors';
@@ -20,6 +21,8 @@ import { useAuth } from '../../hooks/useAuth';
 import { useNetworkStatus } from '../../hooks/useNetworkStatus';
 import { getGroupDetail, GroupDetail, generateInvite, leaveGroup, disbandGroup, setTanggalPelaksanaan } from '../../api/groups';
 import { getActivityLog, ActivityLogEntry } from '../../api/chat';
+import { getPayments, getPeriods, Payment } from '../../api/payments';
+import { undianApi } from '../../api/undian';
 import { cache, CACHE_KEYS } from '../../utils/cache';
 
 type Props = NativeStackScreenProps<AppStackParamList, 'GroupDetail'>;
@@ -64,6 +67,10 @@ export function DetailGrupScreen({ navigation, route }: Props) {
   const [showTanggalModal, setShowTanggalModal] = useState(false);
   const [tanggalInput, setTanggalInput] = useState('');
   const [tanggalLoading, setTanggalLoading] = useState(false);
+  const [paymentStatusMap, setPaymentStatusMap] = useState<Record<string, 'lunas' | 'belum' | 'terlambat'>>({});
+  const [paidCount, setPaidCount] = useState(0);
+  const [currentPeriodDue, setCurrentPeriodDue] = useState<string | null>(null);
+  const [currentWinnerName, setCurrentWinnerName] = useState<string | null>(null);
 
   const load = useCallback(async (isRefresh = false) => {
     try {
@@ -76,6 +83,26 @@ export function DetailGrupScreen({ navigation, route }: Props) {
         setRecentActivity(actRes.entries);
         setLastUpdated(new Date());
         await cache.set(CACHE_KEYS.groupDetail(groupId), data);
+
+        if (data.current_period_id) {
+          const [paymentsRes, periodsRes, undianRes] = await Promise.all([
+            getPayments(token, groupId, data.current_period_id).catch((): Payment[] => []),
+            getPeriods(token, groupId).catch(() => []),
+            undianApi.getHistory(groupId, token).catch(() => ({ winners: [] })),
+          ]);
+          const statusMap: Record<string, 'lunas' | 'belum' | 'terlambat'> = {};
+          for (const p of paymentsRes) {
+            statusMap[p.user_id] = p.status === 'confirmed' ? 'lunas' : p.status === 'late' ? 'terlambat' : 'belum';
+          }
+          setPaymentStatusMap(statusMap);
+          setPaidCount(paymentsRes.filter((p) => p.status === 'confirmed').length);
+          const currentP = periodsRes.find((p) => p.id === data.current_period_id);
+          if (currentP?.due_date) setCurrentPeriodDue(currentP.due_date);
+          const winner = data.current_period != null
+            ? undianRes.winners.find((w) => w.period_number === data.current_period)
+            : undefined;
+          setCurrentWinnerName(winner?.winner_name ?? null);
+        }
       } else {
         const cached = await cache.get<GroupDetail>(CACHE_KEYS.groupDetail(groupId));
         if (cached) {
@@ -188,7 +215,7 @@ export function DetailGrupScreen({ navigation, route }: Props) {
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.safe}>
+      <SafeAreaView edges={['top']} style={styles.safe}>
         <AppBar onBack={() => navigation.goBack()} title="Detail Grup" />
         <ScrollView contentContainerStyle={styles.body}>
           {/* identity skeleton */}
@@ -223,7 +250,7 @@ export function DetailGrupScreen({ navigation, route }: Props) {
   }
 
   return (
-    <SafeAreaView style={styles.safe}>
+    <SafeAreaView edges={['top']} style={styles.safe}>
       <AppBar
         onBack={() => navigation.goBack()}
         title="Detail Grup"
@@ -287,21 +314,29 @@ export function DetailGrupScreen({ navigation, route }: Props) {
               <Text style={styles.periodeLabel}>PERIODE {group?.current_period ?? 1} DARI {group?.total_periods ?? 12}</Text>
               <View style={styles.winnerRow}>
                 <Icon name="trophy" size={18} color={Colors.primaryInk} />
-                <Text style={styles.winnerText}>Pemenang: —</Text>
+                <Text style={styles.winnerText}>
+                  {currentWinnerName ? `Pemenang: ${currentWinnerName}` : 'Belum ada pemenang'}
+                </Text>
               </View>
             </View>
-            <View style={styles.dueWrap}>
-              <Text style={styles.dueLabel}>Jatuh tempo</Text>
-              <Text style={styles.dueDate}>— · H-?</Text>
-            </View>
+            {currentPeriodDue ? (
+              <View style={styles.dueWrap}>
+                <Text style={styles.dueLabel}>Jatuh tempo</Text>
+                <Text style={[styles.dueDate, new Date(currentPeriodDue) < new Date() && styles.dueDateOverdue]}>
+                  {new Date(currentPeriodDue).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })}
+                  {' · H-'}
+                  {Math.max(0, Math.ceil((new Date(currentPeriodDue).getTime() - Date.now()) / 86400000))}
+                </Text>
+              </View>
+            ) : null}
           </View>
           <View style={styles.progressWrap}>
             <View style={styles.progressHeader}>
               <Text style={styles.progressLabel}>Sudah bayar</Text>
-              <Text style={styles.progressLabel}>0 / {members.length || 12}</Text>
+              <Text style={styles.progressLabel}>{paidCount} / {members.length || 0}</Text>
             </View>
             <View style={styles.progressBg}>
-              <View style={[styles.progressFill, { width: '0%' }]} />
+              <View style={[styles.progressFill, { width: `${members.length > 0 ? (paidCount / members.length) * 100 : 0}%` }]} />
             </View>
           </View>
         </Card>
@@ -312,9 +347,14 @@ export function DetailGrupScreen({ navigation, route }: Props) {
             <TouchableOpacity
               key={a.label}
               onPress={() => {
-                if (a.screen === 'Bayar') navigation.navigate('Bayar', { groupId, periodId: group?.current_period_id ?? '', periodNumber: group?.current_period ?? 1 });
-                else if (a.screen === 'Chat') navigation.navigate('Chat', { groupId, groupName, memberCount: members.length, ketuaId: group?.created_by ?? '' });
-                else if (a.screen === 'RequestSwap') navigation.navigate('RequestSwap', { groupId, myPeriod: 1 });
+                if (a.screen === 'Bayar') {
+                  if (!group?.current_period_id) return;
+                  navigation.navigate('Bayar', { groupId, periodId: group.current_period_id, periodNumber: group?.current_period ?? 1 });
+                } else if (a.screen === 'Chat') navigation.navigate('Chat', { groupId, groupName, memberCount: members.length, ketuaId: group?.created_by ?? '' });
+                else if (a.screen === 'RequestSwap') {
+                  const mySlot = members.find((m) => m.user_id === user?.id)?.slot_order ?? 1;
+                  navigation.navigate('RequestSwap', { groupId, myPeriod: mySlot });
+                }
                 else if (a.screen === 'UndianPre') navigation.navigate('UndianPre', { groupId, periodId: group?.current_period_id ?? '', periodNumber: group?.current_period ?? 1, isKetua });
               }}
               style={[styles.quickBtn, 'primary' in a && a.primary && styles.quickBtnPrimary]}
@@ -396,7 +436,7 @@ export function DetailGrupScreen({ navigation, route }: Props) {
         <View style={styles.section}>
           <SectionLabel
             right={
-              <Text style={styles.seeAll} onPress={() => navigation.navigate('Bayar', { groupId, periodId: group?.current_period_id ?? '', periodNumber: group?.current_period ?? 1 })}>
+              <Text style={styles.seeAll} onPress={() => { if (group?.current_period_id) navigation.navigate('Bayar', { groupId, periodId: group.current_period_id, periodNumber: group?.current_period ?? 1 }); }}>
                 Kelola
               </Text>
             }
@@ -407,9 +447,9 @@ export function DetailGrupScreen({ navigation, route }: Props) {
             <View style={styles.memberGrid}>
               {(members.length > 0 ? members : Array(8).fill({ user: { name: '?' }, id: '' })).map((m, i) => (
                 <AnggotaItem
-                  key={i}
-                  name={m.user?.name ?? `A${i + 1}`}
-                  status="belum"
+                  key={m.user_id ?? i}
+                  name={m.user?.name ?? m.user?.phone ?? `A${i + 1}`}
+                  status={paymentStatusMap[m.user_id] ?? 'belum'}
                   isMe={m.user_id === user?.id}
                 />
               ))}
@@ -504,6 +544,7 @@ const styles = StyleSheet.create({
   dueWrap: { alignItems: 'flex-end' },
   dueLabel: { fontFamily: Fonts.bodyRegular, fontSize: 12, color: Colors.muted },
   dueDate: { fontFamily: Fonts.displaySemiBold, fontSize: 15, color: Colors.amberInk, marginTop: 3, fontWeight: '600' },
+  dueDateOverdue: { color: Colors.danger },
   progressWrap: { marginTop: 14 },
   progressHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 },
   progressLabel: { fontFamily: Fonts.bodySemiBold, fontSize: 12, color: Colors.mutedStrong, fontWeight: '600' },

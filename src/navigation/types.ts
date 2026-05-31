@@ -30,7 +30,7 @@ export type AppStackParamList = {
   BuatGrupStep3: { name: string; nominal: number; frequency: string; periods: number };
   Invite: { groupId: string; inviteCode: string; groupName: string };
   UndianPre: { groupId: string; periodId: string; periodNumber: number; isKetua: boolean };
-  UndianResult: { groupId: string; periodId: string; winnerName: string; winnerAmount: number; periodeKe: number };
+  UndianResult: { groupId: string; periodId: string; winnerName: string; winnerAmount: number; periodeKe: number; ketuaId?: string };
   RiwayatPemenang: { groupId: string; groupName: string };
   Bayar: { groupId: string; periodId: string; periodNumber: number };
   BayarDone: { confirmedNames: string[]; amount: number };

@@ -215,6 +215,23 @@ git push origin --delete feature/mo-X-<nama>
 > Claude mengisi bagian ini setelah setiap sesi.
 
 ```
+[DESIGN-SYNC · 2026-05-31]
+- Audit menyeluruh semua 20+ screen vs design files di .claude/designs/. Mayoritas sudah match.
+- DetailGrupScreen: FIXED — status hero card sekarang menampilkan winner name (dari undianApi.getHistory), due date aktual (dari getPeriods), dan progress bar paidCount/memberCount aktual. Member grid sekarang menampilkan payment status nyata (lunas/belum/terlambat) dari getPayments — sebelumnya selalu hardcoded "belum".
+- UndianResultScreen: FIXED — tambah section "Daftar pemenang" yang menampilkan list winner per periode (dari undianApi.getHistory), dengan highlight untuk periode current. Sebelumnya hanya ada winner spotlight tanpa list.
+- GroupsScreen: FIXED — sekarang fetch getGroupDetail() in parallel untuk semua grup agar bisa tampilkan member count aktual, current period, dan role-based filtering (Ketua vs Anggota). Sebelumnya member=0 dan periode=hardcoded.
+- InviteScreen: FIXED — sekarang poll getGroupDetail() setiap 5 detik untuk update member list secara realtime saat anggota bergabung. Sebelumnya hanya show placeholder "Kamu · Ketua" hardcoded.
+- TypeScript: 0 errors. Tidak ada dependency baru.
+
+[DESIGN-IMPL · 2026-05-31]
+- Design bundle dari claude.ai/design didownload, diekstrak, dan disimpan ke .claude/designs/ (hifi-*.jsx + colors_and_type.css).
+- Audit semua 26 screens: semua sudah terimplementasi dari sesi MO-0 s/d MO-10. Design system (colors/typography/spacing) sudah match token dari CSS bundle.
+- SplashScreen: hapus tombol "Sudah punya akun" → single "Mulai" button sesuai design V2.
+- HomeScreen hero: tombol "Sudah bayar" diubah dari solid primaryDeep ke ghost style (white border, transparent bg) sesuai design.
+- NotificationsScreen: tambah CTA_MAP per notification type + Btn per unread item (Bayar/Lihat/Tinjau). First unread = primary variant, sisanya = soft.
+- expo-linear-gradient TIDAK diinstall (perlu konfirmasi). Hero card pakai solid Colors.primary sementara.
+- TypeScript: 0 errors. Tidak ada dependency baru.
+
 [AUDIT-GAP · 2026-05-30]
 - swaps.ts: tambah 'waiting_ketua' ke Swap.status union — backend set status ini saat target menerima, bukan 'target_accepted'.
 - SwapApprovalScreen: filter diubah dari s.status === 'target_accepted' ke s.status === 'waiting_ketua' — sebelumnya approval screen SELALU kosong karena status tidak pernah match.

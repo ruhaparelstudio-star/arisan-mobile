@@ -1,0 +1,86 @@
+/* ============================================================
+   Arisan App — Design System Tokens
+   colors_and_type.css
+   Clean fintech + community warmth · mint #00C897
+   Load this file, then use the CSS variables below.
+   ============================================================ */
+
+/* ---- Fonts (Google Fonts) ----
+   Space Grotesk  — display / headings / numbers (assertive grotesque)
+   Plus Jakarta Sans — body / UI (Indonesian humanist sans, Tokotype)
+*/
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+
+:root {
+  /* ---------- COLOR · Brand (Mint) ---------- */
+  --primary:        #00C897;  /* primary actions, active states */
+  --primary-deep:   #00A87E;  /* gradient end, pressed */
+  --primary-ink:    #047857;  /* primary text/icons on light tint */
+  --primary-tint:   #E6FAF4;  /* tinted surfaces, soft buttons */
+  --primary-ring:   rgba(0,200,151,0.18);  /* focus ring */
+  --primary-shadow: rgba(0,168,126,0.55);  /* colored button shadow */
+
+  /* ---------- COLOR · Neutrals ---------- */
+  --bg:            #FFFFFF;  /* app background */
+  --card:          #FFFFFF;  /* card / sheet surface */
+  --surface:       #F4F6F5;  /* inset / chip / secondary surface */
+  --border:        #ECEFEE;  /* hairline dividers, card borders */
+  --border-strong: #DDE3E1;  /* input borders, steppers */
+  --ink:           #0E1B16;  /* primary text (near-black green) */
+  --muted:         #7A8B84;  /* secondary text */
+  --muted-strong:  #566159;  /* labels, tertiary headings */
+
+  /* ---------- COLOR · Semantic ---------- */
+  --amber:        #F5A524;  /* due soon / warning */
+  --amber-tint:   #FFF4E0;
+  --amber-ink:    #B57400;
+  --danger:       #EF5B52;  /* error / overdue / destructive */
+  --danger-tint:  #FEECEB;
+  --success:      var(--primary);  /* paid / approved (mint) */
+
+  /* ---------- TYPE · Families ---------- */
+  --font-display: 'Space Grotesk', sans-serif;
+  --font-body:    'Plus Jakarta Sans', sans-serif;
+
+  /* ---------- RADIUS ---------- */
+  --r-sm:    8px;   /* small chips, checkboxes */
+  --r-md:    12px;  /* buttons (sm), icon tiles */
+  --r-input: 14px;  /* inputs, segmented control */
+  --r-btn:   15px;  /* default button */
+  --r-card:  20px;  /* cards, sheets (tunable token) */
+  --r-pill:  999px; /* pills, avatars, FABs */
+  --card-radius: 20px; /* alias used by prototype Card */
+
+  /* ---------- SPACING (8pt-ish scale) ---------- */
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 22px;   /* default screen padding */
+  --sp-6: 28px;
+  --sp-7: 40px;
+
+  /* ---------- ELEVATION ---------- */
+  --shadow-card:    0 1px 2px rgba(16,24,40,0.04), 0 1px 3px rgba(16,24,40,0.05);
+  --shadow-pop:     0 12px 30px -8px rgba(16,24,40,0.18);
+  --shadow-primary: 0 6px 16px -6px var(--primary-shadow);
+  --shadow-device:  0 50px 100px -20px rgba(14,27,22,0.45);
+}
+
+/* ============================================================
+   SEMANTIC TYPE STYLES
+   Headings use the display face; body/UI use Plus Jakarta Sans.
+   ============================================================ */
+.display-xl { font-family: var(--font-display); font-weight: 600; font-size: 32px; line-height: 1.08; letter-spacing: -0.8px; color: var(--ink); }
+.display-lg { font-family: var(--font-display); font-weight: 600; font-size: 28px; line-height: 1.1;  letter-spacing: -0.5px; color: var(--ink); }
+.h1         { font-family: var(--font-display); font-weight: 600; font-size: 26px; line-height: 1.12; letter-spacing: -0.5px; color: var(--ink); }
+.h2         { font-family: var(--font-display); font-weight: 600; font-size: 22px; line-height: 1.15; letter-spacing: -0.4px; color: var(--ink); }
+.h3         { font-family: var(--font-display); font-weight: 600; font-size: 18px; line-height: 1.2;  letter-spacing: -0.3px; color: var(--ink); }
+.title      { font-family: var(--font-display); font-weight: 600; font-size: 16px; line-height: 1.25; color: var(--ink); }
+.body       { font-family: var(--font-body); font-weight: 400; font-size: 15px; line-height: 1.5; color: var(--ink); }
+.body-strong{ font-family: var(--font-body); font-weight: 600; font-size: 15px; line-height: 1.5; color: var(--ink); }
+.body-sm    { font-family: var(--font-body); font-weight: 400; font-size: 13px; line-height: 1.45; color: var(--muted); }
+.caption    { font-family: var(--font-body); font-weight: 500; font-size: 12px; line-height: 1.4; color: var(--muted); }
+.label      { font-family: var(--font-body); font-weight: 700; font-size: 12px; letter-spacing: 0.3px; color: var(--muted-strong); }
+.overline   { font-family: var(--font-body); font-weight: 700; font-size: 10.5px; letter-spacing: 0.6px; text-transform: uppercase; color: var(--muted); }
+.num        { font-family: var(--font-display); font-weight: 600; font-feature-settings: 'tnum'; color: var(--ink); }

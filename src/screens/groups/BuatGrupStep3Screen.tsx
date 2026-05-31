@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, ScrollView } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { AppStackParamList } from '../../navigation/types';
 import { Colors } from '../../theme/colors';
@@ -60,34 +61,35 @@ export function BuatGrupStep3Screen({ navigation, route }: Props) {
   };
 
   return (
-    <SafeAreaView style={styles.safe}>
+    <SafeAreaView edges={['top']} style={styles.safe}>
       <AppBar title="Buat Grup" sub="Langkah 3 dari 3" onBack={() => navigation.goBack()} />
       <WizardProgress step={3} />
       <ScrollView contentContainerStyle={styles.body}>
-        <Text style={styles.h1}>Bagaimana giliran{'\n'}ditentukan?</Text>
-        <View style={styles.modeList}>
-          {DRAW_MODES.map((m) => {
-            const on = drawMode === m.id;
-            return (
-              <Card key={m.id} accent={on} tint={on} pad={15} onPress={() => setDrawMode(m.id)} style={styles.modeCard}>
-                <View style={styles.modeRow}>
-                  <View style={[styles.modeIcon, { backgroundColor: on ? Colors.primary : Colors.surface }]}>
-                    <Icon name={m.icon} size={21} color={on ? Colors.white : Colors.ink} strokeWidth={1.9} />
+        <View>
+          <Text style={styles.h1}>Bagaimana giliran{'\n'}ditentukan?</Text>
+          <View style={styles.modeList}>
+            {DRAW_MODES.map((m) => {
+              const on = drawMode === m.id;
+              return (
+                <Card key={m.id} accent={on} tint={on} pad={15} onPress={() => setDrawMode(m.id)} style={styles.modeCard}>
+                  <View style={styles.modeRow}>
+                    <View style={[styles.modeIcon, { backgroundColor: on ? Colors.primary : Colors.surface }]}>
+                      <Icon name={m.icon} size={21} color={on ? Colors.white : Colors.ink} strokeWidth={1.9} />
+                    </View>
+                    <View style={styles.modeInfo}>
+                      <Text style={styles.modeTitle}>{m.title}</Text>
+                      <Text style={styles.modeSub}>{m.sub}</Text>
+                    </View>
+                    <View style={[styles.radio, on && styles.radioActive]}>
+                      {on && <View style={styles.radioDot} />}
+                    </View>
                   </View>
-                  <View style={styles.modeInfo}>
-                    <Text style={styles.modeTitle}>{m.title}</Text>
-                    <Text style={styles.modeSub}>{m.sub}</Text>
-                  </View>
-                  <View style={[styles.radio, on && styles.radioActive]}>
-                    {on && <View style={styles.radioDot} />}
-                  </View>
-                </View>
-              </Card>
-            );
-          })}
+                </Card>
+              );
+            })}
+          </View>
+          {error ? <Text style={styles.error}>{error}</Text> : null}
         </View>
-        {error ? <Text style={styles.error}>{error}</Text> : null}
-        <View style={styles.flex} />
         <Btn full size="lg" icon="check" onPress={handleCreate} loading={loading} style={styles.cta}>
           Buat & Invite Anggota
         </Btn>
@@ -102,7 +104,7 @@ const styles = StyleSheet.create({
   progress: { flexDirection: 'row', gap: 6, paddingHorizontal: 22, paddingBottom: 4 },
   progressBar: { flex: 1, height: 5, borderRadius: 3, backgroundColor: Colors.borderStrong },
   progressBarFilled: { backgroundColor: Colors.primary },
-  body: { flexGrow: 1, paddingHorizontal: 22, paddingBottom: 24 },
+  body: { flexGrow: 1, paddingHorizontal: 22, paddingBottom: 24, justifyContent: 'space-between' },
   h1: { fontFamily: Fonts.displaySemiBold, fontSize: 26, lineHeight: 29, color: Colors.ink, letterSpacing: -0.5, marginTop: 14, marginBottom: 20, fontWeight: '600' },
   modeList: { gap: 12 },
   modeCard: {},

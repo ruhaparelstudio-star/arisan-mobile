@@ -3,11 +3,11 @@ import {
   View,
   Text,
   StyleSheet,
-  SafeAreaView,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { AuthStackParamList } from '../../navigation/types';
 import { Colors } from '../../theme/colors';
@@ -110,65 +110,66 @@ export function OTPVerifyScreen({ navigation, route }: Props) {
   };
 
   return (
-    <SafeAreaView style={styles.safe}>
+    <SafeAreaView edges={['top']} style={styles.safe}>
       <AppBar onBack={() => navigation.goBack()} />
       <KeyboardAvoidingView
         style={styles.flex}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
         <ScrollView contentContainerStyle={styles.body} keyboardShouldPersistTaps="handled">
-          <Pill tone="mint" style={styles.step}>
-            Langkah 2 dari 2
-          </Pill>
-          <Text style={styles.h1}>Masukkan kode dari{'\n'}WhatsApp</Text>
-          <Text style={styles.sub}>
-            Dikirim ke {phone} ·{' '}
-            <Text style={styles.link} onPress={() => navigation.goBack()}>
-              ubah
-            </Text>
-          </Text>
-
-          <View style={styles.otpWrap}>
-            <OtpBoxes value={otp} onChange={setOtp} error={!!error} />
-          </View>
-
-          {error ? (
-            <View style={styles.errorRow}>
-              <Icon name="alert" size={17} color={Colors.danger} />
-              <Text style={styles.errorText}>{error}</Text>
-            </View>
-          ) : null}
-
-          <Text style={styles.resendRow}>
-            Belum diterima?{' '}
-            {resendCooldown > 0 ? (
-              <Text style={styles.resendDisabled}>
-                Kirim ulang dalam {formatTime(resendCooldown)}
+          <View>
+            <Pill tone="mint" style={styles.step}>
+              Langkah 2 dari 2
+            </Pill>
+            <Text style={styles.h1}>Masukkan kode dari{'\n'}WhatsApp</Text>
+            <Text style={styles.sub}>
+              Dikirim ke {phone} ·{' '}
+              <Text style={styles.link} onPress={() => navigation.goBack()}>
+                ubah
               </Text>
-            ) : (
-              <Text style={styles.resendActive} onPress={handleResend}>
-                Kirim ulang kode
+            </Text>
+
+            <View style={styles.otpWrap}>
+              <OtpBoxes value={otp} onChange={setOtp} error={!!error} />
+            </View>
+
+            {error ? (
+              <View style={styles.errorRow}>
+                <Icon name="alert" size={17} color={Colors.danger} />
+                <Text style={styles.errorText}>{error}</Text>
+              </View>
+            ) : null}
+
+            <Text style={styles.resendRow}>
+              Belum diterima?{' '}
+              {resendCooldown > 0 ? (
+                <Text style={styles.resendDisabled}>
+                  Kirim ulang dalam {formatTime(resendCooldown)}
+                </Text>
+              ) : (
+                <Text style={styles.resendActive} onPress={handleResend}>
+                  Kirim ulang kode
+                </Text>
+              )}
+            </Text>
+
+            <View style={styles.infoBox}>
+              <Icon name="info" size={20} color={Colors.muted} />
+              <Text style={styles.infoText}>
+                Setelah 3× gagal, kamu bisa hubungi dukungan untuk verifikasi manual.
+              </Text>
+            </View>
+
+            {countdown > 0 && (
+              <Text style={styles.expiry}>Kode berlaku {formatTime(countdown)}</Text>
+            )}
+            {countdown === 0 && (
+              <Text style={[styles.expiry, styles.expiryDanger]}>
+                OTP sudah expired. Kirim ulang OTP.
               </Text>
             )}
-          </Text>
-
-          <View style={styles.infoBox}>
-            <Icon name="info" size={20} color={Colors.muted} />
-            <Text style={styles.infoText}>
-              Setelah 3× gagal, kamu bisa hubungi dukungan untuk verifikasi manual.
-            </Text>
           </View>
 
-          {countdown > 0 && (
-            <Text style={styles.expiry}>Kode berlaku {formatTime(countdown)}</Text>
-          )}
-          {countdown === 0 && (
-            <Text style={[styles.expiry, styles.expiryDanger]}>
-              OTP sudah expired. Kirim ulang OTP.
-            </Text>
-          )}
-
-          <View style={styles.flex} />
           <Btn
             full
             size="lg"
@@ -188,7 +189,7 @@ export function OTPVerifyScreen({ navigation, route }: Props) {
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: Colors.bg },
   flex: { flex: 1 },
-  body: { flexGrow: 1, paddingHorizontal: 22, paddingBottom: 24 },
+  body: { flexGrow: 1, paddingHorizontal: 22, paddingBottom: 24, justifyContent: 'space-between' },
   step: { marginBottom: 14 },
   h1: {
     fontFamily: Fonts.displaySemiBold,
@@ -249,5 +250,5 @@ const styles = StyleSheet.create({
     color: Colors.muted,
   },
   expiryDanger: { color: Colors.danger, fontFamily: Fonts.bodySemiBold, fontWeight: '600' },
-  cta: { marginTop: 24 },
+  cta: { marginTop: 32 },
 });

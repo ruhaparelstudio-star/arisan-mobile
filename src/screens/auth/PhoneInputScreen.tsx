@@ -3,11 +3,11 @@ import {
   View,
   Text,
   StyleSheet,
-  SafeAreaView,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { AuthStackParamList } from '../../navigation/types';
 import { Colors } from '../../theme/colors';
@@ -58,66 +58,68 @@ export function PhoneInputScreen({ navigation }: Props) {
   };
 
   return (
-    <SafeAreaView style={styles.safe}>
+    <SafeAreaView edges={['top']} style={styles.safe}>
       <AppBar onBack={() => navigation.goBack()} />
       <KeyboardAvoidingView
         style={styles.flex}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
         <ScrollView
           contentContainerStyle={styles.body}
           keyboardShouldPersistTaps="handled"
         >
-          <Pill tone="mint" style={styles.step}>
-            Langkah 1 dari 2
-          </Pill>
-          <Text style={styles.h1}>Halo! Boleh tahu{'\n'}nomor WhatsApp kamu?</Text>
-          <Text style={styles.sub}>
-            Kami kirim kode verifikasi 6 digit lewat WhatsApp dalam ±30 detik.
-          </Text>
-
-          <Field
-            label="NOMOR WHATSAPP"
-            prefix="🇮🇩  +62"
-            value={phone}
-            onChangeText={setPhone}
-            placeholder="812 3456 7890"
-            keyboardType="number-pad"
-            style={styles.field}
-            autoFocus
-          />
-
-          {error ? (
-            <View style={styles.errorRow}>
-              <Icon name="alert" size={16} color={Colors.danger} />
-              <Text style={styles.errorText}>{error}</Text>
-            </View>
-          ) : null}
-
-          <View style={styles.hint}>
-            <Icon name="message" size={20} color={Colors.primaryInk} />
-            <Text style={styles.hintText}>
-              Pakai nomor yang aktif di WhatsApp ya — kode dikirim ke sana.
+          <View>
+            <Pill tone="mint" style={styles.step}>
+              Langkah 1 dari 2
+            </Pill>
+            <Text style={styles.h1}>Halo! Boleh tahu{'\n'}nomor WhatsApp kamu?</Text>
+            <Text style={styles.sub}>
+              Kami kirim kode verifikasi 6 digit lewat WhatsApp dalam ±30 detik.
             </Text>
+
+            <Field
+              label="NOMOR WHATSAPP"
+              prefix="🇮🇩  +62"
+              value={phone}
+              onChangeText={setPhone}
+              placeholder="812 3456 7890"
+              keyboardType="number-pad"
+              style={styles.field}
+              autoFocus
+            />
+
+            {error ? (
+              <View style={styles.errorRow}>
+                <Icon name="alert" size={16} color={Colors.danger} />
+                <Text style={styles.errorText}>{error}</Text>
+              </View>
+            ) : null}
+
+            <View style={styles.hint}>
+              <Icon name="message" size={20} color={Colors.primaryInk} />
+              <Text style={styles.hintText}>
+                Pakai nomor yang aktif di WhatsApp ya — kode dikirim ke sana.
+              </Text>
+            </View>
           </View>
 
-          <View style={styles.flex} />
-
-          <Btn
-            full
-            size="lg"
-            onPress={handleSend}
-            loading={loading}
-            disabled={!isValid || loading}
-            style={styles.cta}
-          >
-            Kirim Kode
-          </Btn>
-          <Text style={styles.terms}>
-            Lanjut berarti setuju{' '}
-            <Text style={styles.termsLink}>Ketentuan</Text> &{' '}
-            <Text style={styles.termsLink}>Privasi</Text>
-          </Text>
+          <View>
+            <Btn
+              full
+              size="lg"
+              onPress={handleSend}
+              loading={loading}
+              disabled={!isValid || loading}
+              style={styles.cta}
+            >
+              Kirim Kode
+            </Btn>
+            <Text style={styles.terms}>
+              Lanjut berarti setuju{' '}
+              <Text style={styles.termsLink}>Ketentuan</Text> &{' '}
+              <Text style={styles.termsLink}>Privasi</Text>
+            </Text>
+          </View>
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -127,7 +129,7 @@ export function PhoneInputScreen({ navigation }: Props) {
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: Colors.bg },
   flex: { flex: 1 },
-  body: { flexGrow: 1, paddingHorizontal: 22, paddingBottom: 24 },
+  body: { flexGrow: 1, paddingHorizontal: 22, paddingBottom: 24, justifyContent: 'space-between' },
   step: { marginBottom: 14 },
   h1: {
     fontFamily: Fonts.displaySemiBold,

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { AppStackParamList } from '../../navigation/types';
 import { Colors } from '../../theme/colors';
@@ -25,26 +26,27 @@ export function BuatGrupStep1Screen({ navigation }: Props) {
   const [name, setName] = useState('');
 
   return (
-    <SafeAreaView style={styles.safe}>
+    <SafeAreaView edges={['top']} style={styles.safe}>
       <AppBar title="Buat Grup" sub="Langkah 1 dari 3" onBack={() => navigation.goBack()} />
       <WizardProgress step={1} />
-      <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+      <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <ScrollView contentContainerStyle={styles.body} keyboardShouldPersistTaps="handled">
-          <Text style={styles.h1}>Mau kasih nama apa{'\n'}grup kamu?</Text>
-          <Text style={styles.sub}>Bisa diubah nanti sebelum periode 1 dimulai.</Text>
-          <Field
-            value={name}
-            onChangeText={setName}
-            placeholder="contoh: Arisan Geng SMA"
-            style={styles.field}
-            big
-            autoFocus
-          />
-          <View style={styles.hint}>
-            <Icon name="info" size={18} color={Colors.muted} />
-            <Text style={styles.hintText}>Pakai nama yang mudah dikenali semua anggota.</Text>
+          <View>
+            <Text style={styles.h1}>Mau kasih nama apa{'\n'}grup kamu?</Text>
+            <Text style={styles.sub}>Bisa diubah nanti sebelum periode 1 dimulai.</Text>
+            <Field
+              value={name}
+              onChangeText={setName}
+              placeholder="contoh: Arisan Geng SMA"
+              style={styles.field}
+              big
+              autoFocus
+            />
+            <View style={styles.hint}>
+              <Icon name="info" size={18} color={Colors.muted} />
+              <Text style={styles.hintText}>Pakai nama yang mudah dikenali semua anggota.</Text>
+            </View>
           </View>
-          <View style={styles.flex} />
           <Btn
             full size="lg" iconRight="arrowRight"
             onPress={() => navigation.navigate('BuatGrupStep2', { name })}
@@ -65,7 +67,7 @@ const styles = StyleSheet.create({
   progress: { flexDirection: 'row', gap: 6, paddingHorizontal: 22, paddingBottom: 4 },
   progressBar: { flex: 1, height: 5, borderRadius: 3, backgroundColor: Colors.borderStrong },
   progressBarFilled: { backgroundColor: Colors.primary },
-  body: { flexGrow: 1, paddingHorizontal: 22, paddingBottom: 24 },
+  body: { flexGrow: 1, paddingHorizontal: 22, paddingBottom: 24, justifyContent: 'space-between' },
   h1: { fontFamily: Fonts.displaySemiBold, fontSize: 26, lineHeight: 29, color: Colors.ink, letterSpacing: -0.5, marginTop: 14, fontWeight: '600' },
   sub: { fontFamily: Fonts.bodyRegular, fontSize: 14, color: Colors.muted, marginTop: 10 },
   field: { marginTop: 26 },

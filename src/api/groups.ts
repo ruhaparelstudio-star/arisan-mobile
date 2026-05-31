@@ -64,9 +64,9 @@ function adaptGroup(raw: RawGroup): Group {
 
 function adaptMember(raw: RawMember): GroupMember {
   return {
-    user_id: raw.user_id ?? (raw.users as { id: string }).id,
+    user_id: raw.user_id ?? raw.users?.id ?? '',
     slot_order: raw.urutan,
-    user: raw.users,
+    user: raw.users ?? { id: '', name: 'Pengguna Dihapus', phone: '' },
   };
 }
 

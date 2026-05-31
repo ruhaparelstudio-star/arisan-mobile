@@ -3,12 +3,12 @@ import {
   View,
   Text,
   StyleSheet,
-  SafeAreaView,
   ScrollView,
   TouchableOpacity,
   Alert,
   ActivityIndicator,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { AppStackParamList } from '../../navigation/types';
 import { Colors } from '../../theme/colors';
@@ -53,9 +53,11 @@ export function RequestSwapScreen({ navigation, route }: Props) {
   useEffect(() => { load(); }, [load]);
 
   const members = group
-    ? [...group.members]
-        .filter((m) => m.slot_order !== null)
-        .sort((a, b) => (a.slot_order ?? 0) - (b.slot_order ?? 0))
+    ? [...group.members].sort((a, b) => {
+        if (a.slot_order === null) return 1;
+        if (b.slot_order === null) return -1;
+        return a.slot_order - b.slot_order;
+      })
     : [];
 
   const currentPeriod = group?.current_period ?? 0;
@@ -79,7 +81,7 @@ export function RequestSwapScreen({ navigation, route }: Props) {
 
   if (loadingData) {
     return (
-      <SafeAreaView style={styles.safe}>
+      <SafeAreaView edges={['top']} style={styles.safe}>
         <AppBar title="Tukar Giliran" onBack={() => navigation.goBack()} />
         <View style={styles.center}>
           <ActivityIndicator size="large" color={Colors.primary} />
@@ -90,7 +92,7 @@ export function RequestSwapScreen({ navigation, route }: Props) {
 
   if (errorMsg) {
     return (
-      <SafeAreaView style={styles.safe}>
+      <SafeAreaView edges={['top']} style={styles.safe}>
         <AppBar title="Tukar Giliran" onBack={() => navigation.goBack()} />
         <StateView
           icon="alert"
@@ -105,7 +107,7 @@ export function RequestSwapScreen({ navigation, route }: Props) {
   }
 
   return (
-    <SafeAreaView style={styles.safe}>
+    <SafeAreaView edges={['top']} style={styles.safe}>
       <AppBar title="Tukar Giliran" onBack={() => navigation.goBack()} />
       <ScrollView contentContainerStyle={styles.body}>
         <View style={styles.infoBox}>
@@ -119,11 +121,12 @@ export function RequestSwapScreen({ navigation, route }: Props) {
           <View style={styles.timelineLine} />
           {members.map((m) => {
             const isMe = m.user_id === user?.id;
+            const noSlot = m.slot_order === null && !isMe;
             const slot = m.slot_order ?? 0;
-            const isPast = slot < currentPeriod && !isMe;
-            const isCurrent = slot === currentPeriod && !isMe;
+            const isPast = slot < currentPeriod && !isMe && !noSlot;
+            const isCurrent = slot === currentPeriod && !isMe && !noSlot;
             const isTarget = target?.user_id === m.user_id;
-            const disabled = isPast || isMe || isCurrent;
+            const disabled = isPast || isMe || isCurrent || noSlot;
             return (
               <TouchableOpacity
                 key={m.user_id}
@@ -139,7 +142,7 @@ export function RequestSwapScreen({ navigation, route }: Props) {
               >
                 <View style={[styles.slotNum, isCurrent && styles.slotNumCurrent]}>
                   <Text style={[styles.slotNumText, isCurrent && styles.slotNumTextCurrent]}>
-                    {slot}
+                    {noSlot ? '?' : slot}
                   </Text>
                 </View>
                 <View style={styles.flex}>
@@ -147,12 +150,13 @@ export function RequestSwapScreen({ navigation, route }: Props) {
                     {m.user.name ?? m.user.phone}
                     {isMe ? ' (kamu)' : ''}
                   </Text>
-                  <Text style={styles.slotDate}>Periode {slot}</Text>
+                  <Text style={styles.slotDate}>{noSlot ? 'Belum ada giliran' : `Periode ${slot}`}</Text>
                 </View>
                 {isMe && <Pill tone="mint">Posisimu</Pill>}
                 {isTarget && <Pill tone="amber">Tukar ke sini</Pill>}
                 {isCurrent && <Pill tone="solid">Sekarang</Pill>}
                 {isPast && <Pill tone="neutral">Selesai</Pill>}
+                {noSlot && <Pill tone="neutral">Belum diatur</Pill>}
               </TouchableOpacity>
             );
           })}

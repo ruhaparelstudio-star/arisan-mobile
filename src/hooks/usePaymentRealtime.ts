@@ -32,6 +32,11 @@ export function usePaymentRealtime(periodId: string, initial: Payment[]): Paymen
         { event: '*', schema: 'public', table: 'payments', filter: `period_id=eq.${periodId}` },
         (payload) => {
           setPayments((prev) => {
+            // DELETE: payload.new adalah {} — gunakan payload.old
+            if (payload.eventType === 'DELETE') {
+              const old = payload.old as { user_id?: string };
+              return prev.filter((p) => p.user_id !== old.user_id);
+            }
             const raw = payload.new as Omit<Payment, 'user'>;
             const idx = prev.findIndex((p) => p.user_id === raw.user_id);
             if (idx >= 0) {

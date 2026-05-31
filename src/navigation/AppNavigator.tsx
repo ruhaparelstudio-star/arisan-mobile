@@ -2,6 +2,7 @@ import React from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppStackParamList, MainTabParamList } from './types';
 import { Colors } from '../theme/colors';
 import { Fonts } from '../theme/typography';
@@ -42,11 +43,12 @@ const TABS = [
 ] as const;
 
 function MainTabs() {
+  const insets = useSafeAreaInsets();
   return (
     <Tab.Navigator
       screenOptions={{ headerShown: false }}
       tabBar={({ state, navigation }) => (
-        <View style={tabStyles.bar}>
+        <View style={[tabStyles.bar, { paddingBottom: Math.max(insets.bottom, 12) }]}>
           {TABS.map((t, i) => {
             const active = state.index === i;
             return (
@@ -113,7 +115,6 @@ const tabStyles = StyleSheet.create({
     borderTopColor: Colors.border,
     backgroundColor: Colors.bg,
     paddingTop: 8,
-    paddingBottom: 28,
     paddingHorizontal: 12,
     justifyContent: 'space-around',
   },

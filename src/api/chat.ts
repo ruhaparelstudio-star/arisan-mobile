@@ -80,7 +80,7 @@ export async function fetchMessages(
     user_id: r.user_id ?? '',
     content: r.content,
     created_at: r.created_at,
-    user_name: r.user?.name ?? r.user?.phone ?? 'Sistem',
+    user_name: r.user_id == null ? 'Sistem' : (r.user?.name ?? r.user?.phone ?? 'Anggota'),
     type: r.user_id == null ? 'system' : 'user',
   }));
 

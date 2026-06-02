@@ -1,6 +1,7 @@
 import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import { storage, AUTH_TOKEN_KEY, AUTH_USER_KEY } from '../utils/storage';
 import { getMe } from '../api/auth';
+import { ApiError } from '../api/client';
 
 export interface AuthUser {
   id: string;
@@ -38,10 +39,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             await storage.set(AUTH_USER_KEY, JSON.stringify(merged));
             setToken(t);
             setUser(merged);
-          } catch {
-            // Token tidak valid atau server tidak bisa dijangkau — hapus sesi lama
-            await storage.delete(AUTH_TOKEN_KEY);
-            await storage.delete(AUTH_USER_KEY);
+          } catch (e) {
+            // Hanya hapus sesi jika server secara eksplisit menolak token (401/403).
+            // Network error (status=0) atau server down → pertahankan sesi, user sudah login.
+            if (e instanceof ApiError && (e.status === 401 || e.status === 403)) {
+              await storage.delete(AUTH_TOKEN_KEY);
+              await storage.delete(AUTH_USER_KEY);
+            } else {
+              // Offline / timeout → tetap login dengan data cache
+              setToken(t);
+              setUser(JSON.parse(u));
+            }
           }
           return;
         }

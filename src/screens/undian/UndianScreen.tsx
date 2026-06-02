@@ -200,12 +200,12 @@ export function UndianScreen({ navigation, route }: Props) {
         new Promise<void>((resolve) => setTimeout(resolve, ANIM_MIN_MS[drawMode] ?? 2000)),
       ]);
 
-      // Broadcast ke chat grup (fire-and-forget — tidak block navigasi)
+      // Broadcast ke chat grup — await agar pesan terkirim sebelum navigate
       const winnerDisplay = result.winner.name || `anggota`;
       const broadcastMsg = drawMode === 'fixed'
         ? `🎉 Pemenang periode ${result.periode_ke} adalah *${winnerDisplay}* (urutan tetap).`
         : `🎉 Hasil undian periode ${result.periode_ke}: *${winnerDisplay}* terpilih sebagai pemenang! Selamat! 🏆`;
-      sendMessage(token, groupId, broadcastMsg).catch(() => { /* silently ignore */ });
+      try { await sendMessage(token, groupId, broadcastMsg); } catch { /* broadcast gagal — tidak block navigasi */ }
 
       navigation.replace('UndianResult', {
         groupId,
@@ -228,9 +228,9 @@ export function UndianScreen({ navigation, route }: Props) {
     setSavingManual(true);
     try {
       await setSlotOrder(token, groupId, manualMembers.map((m) => m.id));
-      // Broadcast ke chat grup urutan undian offline (fire-and-forget)
+      // Broadcast urutan ke chat — await agar pesan terkirim sebelum load ulang
       const orderText = manualMembers.map((m, i) => `${i + 1}. ${m.name}`).join(', ');
-      sendMessage(token, groupId, `📋 Ketua telah mengunci urutan undian offline: ${orderText}`).catch(() => { /* silently ignore */ });
+      try { await sendMessage(token, groupId, `📋 Ketua telah mengunci urutan undian: ${orderText}`); } catch { /* broadcast gagal */ }
       await load();
     } catch (e: any) {
       Alert.alert('Gagal Menyimpan', e.message ?? 'Gagal menyimpan urutan. Coba lagi.');

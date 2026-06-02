@@ -11,8 +11,14 @@ export function useChatSound() {
 
     async function load() {
       try {
-        await Audio.setAudioModeAsync({ playsInSilentModeIOS: false });
-        const { sound } = await Audio.Sound.createAsync(SOUND_FILE, { volume: 0.7 });
+        await Audio.setAudioModeAsync({
+          allowsRecordingIOS: false,
+          playsInSilentModeIOS: false,
+          staysActiveInBackground: false,
+          shouldDuckAndroid: true,
+          playThroughEarpieceAndroid: false,
+        });
+        const { sound } = await Audio.Sound.createAsync(SOUND_FILE, { shouldPlay: false, volume: 1.0 });
         if (mounted) soundRef.current = sound;
       } catch {
         // Gagal load sound tidak perlu ditampilkan ke user

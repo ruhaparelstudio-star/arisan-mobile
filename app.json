@@ -1,7 +1,8 @@
 {
   "expo": {
     "name": "Arisan Mobile",
-    "slug": "arisan-mobile",
+    "slug": "arisanappios",
+    "owner": "arsdevdev123",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -14,7 +15,10 @@
     },
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "com.ruhaparelstudio.arisan"
+      "bundleIdentifier": "com.ruhaparelstudio.arisan",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -24,6 +28,11 @@
       "package": "com.ruhaparelstudio.arisan",
       "googleServicesFile": "./google-services.json",
       "versionCode": 1
+    },
+    "extra": {
+      "eas": {
+        "projectId": "9da82ece-f08d-4bd6-aee0-52cb3a116600"
+      }
     },
     "plugins": [
       "expo-secure-store",

@@ -20,7 +20,7 @@ import { OfflineBanner } from '../../components/OfflineBanner';
 import { SkeletonBar } from '../../components/ui/SkeletonBar';
 import { useAuth } from '../../hooks/useAuth';
 import { useNetworkStatus } from '../../hooks/useNetworkStatus';
-import { getGroupDetail, GroupDetail, generateInvite, leaveGroup, disbandGroup, setTanggalPelaksanaan, kickMember } from '../../api/groups';
+import { getGroupDetail, GroupDetail, generateInvite, leaveGroup, disbandGroup, setTanggalPelaksanaan, kickMember, startArisan } from '../../api/groups';
 import { getActivityLog, ActivityLogEntry } from '../../api/chat';
 import { getPayments, getPeriods, Payment } from '../../api/payments';
 import { undianApi } from '../../api/undian';
@@ -191,6 +191,31 @@ export function DetailGrupScreen({ navigation, route }: Props) {
               navigation.goBack();
             } catch (e: any) {
               Alert.alert('Gagal', e.message ?? 'Gagal keluar dari grup.');
+            } finally {
+              setActionLoading(false);
+            }
+          },
+        },
+      ],
+    );
+  };
+
+  const handleStartArisan = () => {
+    Alert.alert(
+      'Mulai Arisan',
+      `Mulai arisan "${group?.name ?? groupName}"? Setelah dimulai, anggota baru tidak bisa bergabung.`,
+      [
+        { text: 'Batal', style: 'cancel' },
+        {
+          text: 'Mulai',
+          onPress: async () => {
+            if (!token) return;
+            setActionLoading(true);
+            try {
+              await startArisan(token, groupId);
+              await load();
+            } catch (e: any) {
+              Alert.alert('Gagal', e.message ?? 'Gagal memulai arisan.');
             } finally {
               setActionLoading(false);
             }
@@ -636,6 +661,24 @@ export function DetailGrupScreen({ navigation, route }: Props) {
               <Text style={styles.ketuaRowLabel}>Approval Tukar Giliran</Text>
               <Icon name="chevronRight" size={16} color={Colors.muted} strokeWidth={2} />
             </TouchableOpacity>
+
+            {/* Mulai Arisan — hanya saat masih recruiting */}
+            {group?.status === 'recruiting' && (
+              <>
+                <View style={styles.ketuaRowDivider} />
+                <TouchableOpacity
+                  style={[styles.ketuaRow, (!isOnline || actionLoading) && styles.ketuaRowDisabled]}
+                  onPress={handleStartArisan}
+                  disabled={!isOnline || actionLoading}
+                >
+                  <View style={[styles.ketuaRowIcon, { backgroundColor: Colors.primaryTint }]}>
+                    <Icon name="checkCircle" size={18} color={Colors.primary} strokeWidth={2} />
+                  </View>
+                  <Text style={[styles.ketuaRowLabel, { color: Colors.primary, fontWeight: 'bold' }]}>Mulai Arisan</Text>
+                  <Icon name="chevronRight" size={16} color={Colors.primary} strokeWidth={2} />
+                </TouchableOpacity>
+              </>
+            )}
 
             {/* Danger zone */}
             <View style={styles.ketuaRowDivider} />

@@ -264,6 +264,10 @@ export function kickMember(
   });
 }
 
+export function startArisan(token: string, groupId: string): Promise<{ message: string }> {
+  return apiCall(`/api/groups/${groupId}/start`, { method: 'POST', token });
+}
+
 export function setTanggalPelaksanaan(
   token: string,
   groupId: string,

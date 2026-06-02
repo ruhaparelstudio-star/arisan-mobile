@@ -58,13 +58,26 @@ export default function App() {
   // Load notification sound sekali saat app mount
   useEffect(() => {
     let mounted = true;
-    Audio.Sound.createAsync(
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-      require('./assets/sounds/notification.wav'),
-      { shouldPlay: false, volume: 1.0 },
-    )
-      .then(({ sound }) => { if (mounted) notifSoundRef.current = sound; })
-      .catch(() => {});
+    async function load() {
+      try {
+        await Audio.setAudioModeAsync({
+          allowsRecordingIOS: false,
+          playsInSilentModeIOS: false,
+          staysActiveInBackground: false,
+          shouldDuckAndroid: true,
+          playThroughEarpieceAndroid: false,
+        });
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
+        const { sound } = await Audio.Sound.createAsync(require('./assets/sounds/notification.wav'), {
+          shouldPlay: false,
+          volume: 1.0,
+        });
+        if (mounted) notifSoundRef.current = sound;
+      } catch {
+        // Gagal load sound tidak perlu di-block app
+      }
+    }
+    load();
     return () => {
       mounted = false;
       notifSoundRef.current?.unloadAsync();

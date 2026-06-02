@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, ActivityIndicator, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { AppStackParamList } from '../../navigation/types';
@@ -17,7 +17,7 @@ type Props = NativeStackScreenProps<AppStackParamList, 'JoinConfirm'>;
 
 export function JoinConfirmScreen({ navigation, route }: Props) {
   const { code } = route.params;
-  const { token } = useAuth();
+  const { token, user } = useAuth();
   const [group, setGroup] = useState<(Group & { member_count: number }) | null>(null);
   const [loading, setLoading] = useState(true);
   const [joining, setJoining] = useState(false);
@@ -33,6 +33,17 @@ export function JoinConfirmScreen({ navigation, route }: Props) {
 
   const handleJoin = async () => {
     if (!token || !group) return;
+    if (!user?.name) {
+      Alert.alert(
+        'Lengkapi profil dulu',
+        'Kamu perlu mengisi nama sebelum bergabung ke grup arisan.',
+        [
+          { text: 'Batal', style: 'cancel' },
+          { text: 'Isi Nama', onPress: () => (navigation as any).navigate('Profil') },
+        ],
+      );
+      return;
+    }
     setJoining(true);
     try {
       await joinGroup(token, code);

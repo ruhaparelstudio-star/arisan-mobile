@@ -19,7 +19,7 @@ import { undianApi } from '../../api/undian';
 
 type Props = NativeStackScreenProps<AppStackParamList, 'Invite'>;
 
-const POLL_MS = 5000;
+const POLL_MS = 10000;
 const PLAYSTORE_URL = process.env.EXPO_PUBLIC_PLAYSTORE_URL ?? 'https://play.google.com/store/apps/details?id=com.ruhaparelstudio.arisan';
 
 export function InviteScreen({ navigation, route }: Props) {

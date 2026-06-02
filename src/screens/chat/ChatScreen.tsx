@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import {
   View, Text, StyleSheet, FlatList,
   TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, ActivityIndicator,
@@ -154,7 +154,7 @@ export function ChatScreen({ navigation, route }: Props) {
       } catch {
         // silently fail — typing indicator tidak kritikal
       }
-    }, 3000);
+    }, 8000);
     return () => clearInterval(poll);
   }, [groupId, token, isOnline]);
 
@@ -205,15 +205,15 @@ export function ChatScreen({ navigation, route }: Props) {
     }
   };
 
-  const filtered: ListItem[] = insertDateDividers(
+  const filtered = useMemo<ListItem[]>(() => insertDateDividers(
     messages.filter((m) => {
       if (filter === 'Semua') return true;
       if (filter === 'Sistem') return m.type === 'system';
       return m.type === 'user';
     }),
-  );
+  ), [messages, filter]);
 
-  const renderItem = ({ item }: { item: ListItem }) => {
+  const renderItem = useCallback(({ item }: { item: ListItem }) => {
     if ('type' in item && item.type === 'date') {
       return (
         <View style={styles.dateDivider}>
@@ -269,7 +269,7 @@ export function ChatScreen({ navigation, route }: Props) {
         <Text style={styles.msgTime}>{formatTime(item.created_at)}</Text>
       </View>
     );
-  };
+  }, [user?.id, ketuaId, filter]);
 
   return (
     <SafeAreaView edges={['top']} style={styles.safe}>

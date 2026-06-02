@@ -15,7 +15,7 @@ interface GrupCardProps {
   onPress?: () => void;
 }
 
-export function GrupCard({
+export const GrupCard = React.memo(function GrupCard({
   name,
   initial,
   members,
@@ -59,7 +59,7 @@ export function GrupCard({
       </View>
     </TouchableOpacity>
   );
-}
+});
 
 const styles = StyleSheet.create({
   card: {

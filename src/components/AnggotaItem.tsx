@@ -19,7 +19,7 @@ const statusDotColor: Record<Status, string> = {
   terlambat: Colors.danger,
 };
 
-export function AnggotaItem({ name, status, isMe }: AnggotaItemProps) {
+export const AnggotaItem = React.memo(function AnggotaItem({ name, status, isMe }: AnggotaItemProps) {
   return (
     <View style={styles.container}>
       <View style={styles.avatarWrap}>
@@ -36,7 +36,7 @@ export function AnggotaItem({ name, status, isMe }: AnggotaItemProps) {
       </Text>
     </View>
   );
-}
+});
 
 const styles = StyleSheet.create({
   container: {

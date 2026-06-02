@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   View, Text, ScrollView, StyleSheet, TouchableOpacity,
   RefreshControl, Alert, Share, Clipboard, Modal, TextInput, KeyboardAvoidingView, Platform,
@@ -308,6 +308,19 @@ export function DetailGrupScreen({ navigation, route }: Props) {
   const isWinner = !!user && !!currentWinnerId && user.id === currentWinnerId && !isKetua;
   // Prompt tanggal untuk pemenang: tampil jika Mode 2, user adalah pemenang, tanggal belum diset
   const showWinnerTanggalPrompt = isWinner && !currentPeriodDue && group?.draw_mode === 'random';
+
+  const activityRows = useMemo(() => recentActivity.map((a) => {
+    if (!a.created_at) return { ...a, when: '' };
+    const d = new Date(a.created_at);
+    const now = new Date();
+    const diffH = (now.getTime() - d.getTime()) / 3600000;
+    let when: string;
+    if (diffH < 1) when = `${Math.max(1, Math.round(diffH * 60))}m`;
+    else if (diffH < 24) when = `${Math.round(diffH)}j`;
+    else if (diffH < 48) when = 'Kemarin';
+    else when = d.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' });
+    return { ...a, when };
+  }), [recentActivity]);
 
   if (loading) {
     return (
@@ -728,32 +741,20 @@ export function DetailGrupScreen({ navigation, route }: Props) {
             Aktivitas terbaru
           </SectionLabel>
           <Card pad={6}>
-            {recentActivity.length === 0 ? (
+            {activityRows.length === 0 ? (
               <View style={styles.actRow}>
                 <Text style={styles.actEmpty}>Belum ada aktivitas di grup ini.</Text>
               </View>
             ) : (
-              recentActivity.map((a, i) => {
-                const when = (() => {
-                  if (!a.created_at) return '';
-                  const d = new Date(a.created_at);
-                  const now = new Date();
-                  const diffH = (now.getTime() - d.getTime()) / 3600000;
-                  if (diffH < 1) return `${Math.max(1, Math.round(diffH * 60))}m`;
-                  if (diffH < 24) return `${Math.round(diffH)}j`;
-                  if (diffH < 48) return 'Kemarin';
-                  return d.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' });
-                })();
-                return (
-                  <View key={a.id} style={[styles.actRow, i < recentActivity.length - 1 && styles.actBorder]}>
-                    <View style={[styles.actIcon, { backgroundColor: TONE_BG[a.tone] ?? Colors.surface }]}>
-                      <Icon name={a.icon} size={20} color={TONE_FG[a.tone] ?? Colors.mutedStrong} strokeWidth={2} />
-                    </View>
-                    <Text style={styles.actText} numberOfLines={2}>{a.text}</Text>
-                    {when ? <Text style={styles.actWhen}>{when}</Text> : null}
+              activityRows.map((a, i) => (
+                <View key={a.id} style={[styles.actRow, i < activityRows.length - 1 && styles.actBorder]}>
+                  <View style={[styles.actIcon, { backgroundColor: TONE_BG[a.tone] ?? Colors.surface }]}>
+                    <Icon name={a.icon} size={20} color={TONE_FG[a.tone] ?? Colors.mutedStrong} strokeWidth={2} />
                   </View>
-                );
-              })
+                  <Text style={styles.actText} numberOfLines={2}>{a.text}</Text>
+                  {a.when ? <Text style={styles.actWhen}>{a.when}</Text> : null}
+                </View>
+              ))
             )}
           </Card>
           <View style={styles.immutableNote}>

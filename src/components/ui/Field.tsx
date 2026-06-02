@@ -17,6 +17,7 @@ interface FieldProps {
   autoFocus?: boolean;
   maxLength?: number;
   editable?: boolean;
+  testID?: string;
 }
 
 export function Field({
@@ -32,6 +33,7 @@ export function Field({
   autoFocus,
   maxLength,
   editable = true,
+  testID,
 }: FieldProps) {
   const [focused, setFocused] = useState(false);
   const inputRef = useRef<TextInput>(null);
@@ -63,6 +65,7 @@ export function Field({
           autoFocus={autoFocus}
           maxLength={maxLength}
           editable={editable}
+          testID={testID}
         />
       </Pressable>
     </View>

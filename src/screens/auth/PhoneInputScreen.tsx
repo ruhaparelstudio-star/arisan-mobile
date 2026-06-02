@@ -94,6 +94,7 @@ export function PhoneInputScreen({ navigation }: Props) {
               keyboardType="number-pad"
               style={styles.field}
               autoFocus
+              testID="phone_input"
             />
 
             {error ? (
@@ -119,6 +120,7 @@ export function PhoneInputScreen({ navigation }: Props) {
               loading={loading}
               disabled={!isValid || loading || cooldown > 0}
               style={styles.cta}
+              testID="btn_kirim_kode"
             >
               {cooldown > 0 ? `Coba lagi dalam ${cooldown} detik` : 'Kirim Kode'}
             </Btn>

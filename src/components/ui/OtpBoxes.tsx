@@ -9,9 +9,10 @@ interface OtpBoxesProps {
   error?: boolean;
   alphanumeric?: boolean;
   length?: number;
+  testID?: string;
 }
 
-export function OtpBoxes({ value, onChange, error, alphanumeric, length = 6 }: OtpBoxesProps) {
+export function OtpBoxes({ value, onChange, error, alphanumeric, length = 6, testID }: OtpBoxesProps) {
   const inputs = useRef<(TextInput | null)[]>([]);
   const [focused, setFocused] = useState(0);
 
@@ -57,6 +58,7 @@ export function OtpBoxes({ value, onChange, error, alphanumeric, length = 6 }: O
             maxLength={1}
             textAlign="center"
             selectionColor={Colors.primary}
+            testID={testID ? `${testID}_${i}` : undefined}
           />
         );
       })}

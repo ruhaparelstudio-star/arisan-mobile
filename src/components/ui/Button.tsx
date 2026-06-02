@@ -27,6 +27,7 @@ interface BtnProps {
   textStyle?: TextStyle;
   disabled?: boolean;
   loading?: boolean;
+  testID?: string;
 }
 
 const sizeConfig = {
@@ -65,6 +66,7 @@ export function Btn({
   textStyle,
   disabled,
   loading,
+  testID,
 }: BtnProps) {
   const s = sizeConfig[size];
   const v = variantConfig[variant];
@@ -74,6 +76,7 @@ export function Btn({
       onPress={onPress}
       disabled={disabled || loading}
       activeOpacity={0.85}
+      testID={testID}
       style={[
         styles.base,
         {

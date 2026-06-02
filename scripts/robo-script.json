@@ -1,0 +1,49 @@
+[
+  {
+    "eventType": "VIEW_TEXT_CHANGED",
+    "elementDescriptors": [{ "contentDescription": "phone_input" }],
+    "replacementText": "8560000100"
+  },
+  {
+    "eventType": "VIEW_CLICKED",
+    "elementDescriptors": [{ "contentDescription": "btn_kirim_kode" }]
+  },
+  {
+    "eventType": "WAIT",
+    "duration": 3000
+  },
+  {
+    "eventType": "VIEW_TEXT_CHANGED",
+    "elementDescriptors": [{ "contentDescription": "otp_input_0" }],
+    "replacementText": "1"
+  },
+  {
+    "eventType": "VIEW_TEXT_CHANGED",
+    "elementDescriptors": [{ "contentDescription": "otp_input_1" }],
+    "replacementText": "2"
+  },
+  {
+    "eventType": "VIEW_TEXT_CHANGED",
+    "elementDescriptors": [{ "contentDescription": "otp_input_2" }],
+    "replacementText": "3"
+  },
+  {
+    "eventType": "VIEW_TEXT_CHANGED",
+    "elementDescriptors": [{ "contentDescription": "otp_input_3" }],
+    "replacementText": "4"
+  },
+  {
+    "eventType": "VIEW_TEXT_CHANGED",
+    "elementDescriptors": [{ "contentDescription": "otp_input_4" }],
+    "replacementText": "5"
+  },
+  {
+    "eventType": "VIEW_TEXT_CHANGED",
+    "elementDescriptors": [{ "contentDescription": "otp_input_5" }],
+    "replacementText": "6"
+  },
+  {
+    "eventType": "WAIT",
+    "duration": 3000
+  }
+]

@@ -147,7 +147,7 @@ export function OTPVerifyScreen({ navigation, route }: Props) {
             )}
 
             <View style={styles.otpWrap}>
-              <OtpBoxes value={otp} onChange={setOtp} error={!!error} />
+              <OtpBoxes value={otp} onChange={setOtp} error={!!error} testID="otp_input" />
             </View>
 
             {error ? (

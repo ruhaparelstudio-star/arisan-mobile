@@ -50,6 +50,6 @@ export const undianApi = {
   // GAP-019: endpoint GET /winners sekarang ada di backend
   getHistory: (groupId: string, token: string): Promise<{ winners: Winner[] }> =>
     apiCall<{ winners: RawWinner[] }>(`/api/groups/${groupId}/winners`, { token }).then((r) => ({
-      winners: r.winners.map(adaptWinner),
+      winners: (r.winners ?? []).map(adaptWinner),
     })),
 };

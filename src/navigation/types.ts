@@ -24,7 +24,16 @@ export type MainTabParamList = {
 export type AppStackParamList = {
   Main: NavigatorScreenParams<MainTabParamList>;
   GroupDetail: { groupId: string; groupName: string };
-  Chat: { groupId: string; groupName: string; memberCount: number; ketuaId: string };
+  Chat: {
+    groupId: string;
+    groupName: string;
+    memberCount: number;
+    ketuaId: string;
+    periodNumber?: number;
+    winnerName?: string | null;
+    paidCount?: number;
+    dueDate?: string | null;
+  };
   BuatGrupStep1: undefined;
   BuatGrupStep2: { name: string };
   BuatGrupStep3: { name: string; nominal: number; frequency: string; periods: number };
@@ -33,7 +42,6 @@ export type AppStackParamList = {
   UndianResult: { groupId: string; periodId: string; winnerName: string; winnerAmount: number; periodeKe: number; ketuaId?: string };
   RiwayatPemenang: { groupId: string; groupName: string };
   Bayar: { groupId: string; periodId: string; periodNumber: number };
-  BayarDone: { confirmedNames: string[]; amount: number };
   JoinGrup: undefined;
   JoinConfirm: { code: string };
   RequestSwap: { groupId: string; myPeriod: number };
@@ -42,5 +50,7 @@ export type AppStackParamList = {
   SwapApproval: { groupId: string; groupName: string };
   ActivityLog: { groupId: string; groupName: string };
   PaymentHistory: { groupId: string; groupName: string };
-  SetGiliran: { groupId: string; members: Array<{ id: string; name: string; slot_order: number | null }> };
+  SetGiliran: { groupId: string; members: Array<{ id: string; name: string; slot_order: number | null }>; isLocked?: boolean };
+  SwapByKetua: { groupId: string; groupName: string; winnerId?: string; winnerName?: string };
+  BukuArisan: { groupId: string; groupName: string };
 };

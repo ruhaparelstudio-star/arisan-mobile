@@ -80,14 +80,29 @@ export function PaymentStatusScreen({ navigation, route }: Props) {
         map[m.user_id] = m.user.name ?? m.user.phone;
       });
 
-      setRawPayments(paymentsData);
+      // Build full rows: semua member muncul, merge dengan payment data yang ada
+      const fullPayments: Payment[] = groupData.members.map((m) => {
+        const existing = paymentsData.find((p) => p.user_id === m.user_id);
+        if (existing) return existing;
+        return {
+          id: null,
+          period_id: periodId,
+          user_id: m.user_id,
+          status: 'pending',
+          confirmed_by: null,
+          confirmed_at: null,
+          user: { name: m.user.name, phone: m.user.phone },
+        };
+      });
+
+      setRawPayments(fullPayments);
       setPeriod(found);
       setMemberMap(map);
       setIsKetua(groupData.created_by === user?.id);
       setTotalMembers(groupData.members.length);
       setLastUpdated(new Date());
 
-      await cache.set(CACHE_KEYS.payments(periodId), { payments: paymentsData, period: found, memberMap: map, isKetua: groupData.created_by === user?.id, totalMembers: groupData.members.length });
+      await cache.set(CACHE_KEYS.payments(periodId), { payments: fullPayments, period: found, memberMap: map, isKetua: groupData.created_by === user?.id, totalMembers: groupData.members.length });
     } catch (e: any) {
       if (!fromCache) setError('Gagal memuat data pembayaran. Coba lagi.');
     } finally {
@@ -141,7 +156,7 @@ export function PaymentStatusScreen({ navigation, route }: Props) {
   const isDueOverdue = period?.due_date ? new Date(period.due_date) < new Date() : false;
 
   const memberName = (p: Payment) =>
-    p.user.name ?? p.user.phone;
+    p.user?.name ?? p.user?.phone ?? '?';
 
   const confirmerName = (p: Payment) =>
     p.confirmed_by ? (memberMap[p.confirmed_by] ?? 'Ketua') : '';

@@ -30,7 +30,7 @@ export function JoinGrupScreen({ navigation }: Props) {
             <Text style={styles.sub}>Minta kode ke ketua grup, lalu masukkan di sini.</Text>
 
             <View style={styles.otpWrap}>
-              <OtpBoxes value={code} onChange={(v) => setCode(v.toUpperCase())} />
+              <OtpBoxes value={code} onChange={setCode} alphanumeric length={8} />
             </View>
 
             <View style={styles.divider}>

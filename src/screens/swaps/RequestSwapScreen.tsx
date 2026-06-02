@@ -22,6 +22,7 @@ import { useAuth } from '../../hooks/useAuth';
 import { useNetworkStatus } from '../../hooks/useNetworkStatus';
 import { getGroupDetail, GroupDetail, GroupMember } from '../../api/groups';
 import { swapsApi } from '../../api/swaps';
+import { undianApi } from '../../api/undian';
 
 type Props = NativeStackScreenProps<AppStackParamList, 'RequestSwap'>;
 
@@ -31,6 +32,7 @@ export function RequestSwapScreen({ navigation, route }: Props) {
   const isOnline = useNetworkStatus();
 
   const [group, setGroup] = useState<GroupDetail | null>(null);
+  const [winnerIds, setWinnerIds] = useState<Set<string>>(new Set());
   const [loadingData, setLoadingData] = useState(true);
   const [errorMsg, setErrorMsg] = useState('');
   const [target, setTarget] = useState<GroupMember | null>(null);
@@ -41,8 +43,12 @@ export function RequestSwapScreen({ navigation, route }: Props) {
     setLoadingData(true);
     setErrorMsg('');
     try {
-      const data = await getGroupDetail(token, groupId);
+      const [data, undianRes] = await Promise.all([
+        getGroupDetail(token, groupId),
+        undianApi.getHistory(groupId, token).catch(() => ({ winners: [] })),
+      ]);
       setGroup(data);
+      setWinnerIds(new Set(undianRes.winners.map((w) => w.user_id)));
     } catch {
       setErrorMsg('Gagal memuat data anggota. Coba lagi.');
     } finally {
@@ -51,6 +57,8 @@ export function RequestSwapScreen({ navigation, route }: Props) {
   }, [token, groupId]);
 
   useEffect(() => { load(); }, [load]);
+
+  const myUserId = user?.id ?? '';
 
   const members = group
     ? [...group.members].sort((a, b) => {
@@ -61,17 +69,15 @@ export function RequestSwapScreen({ navigation, route }: Props) {
     : [];
 
   const currentPeriod = group?.current_period ?? 0;
+  const mySwapCount = group?.members.find((m) => m.user_id === myUserId)?.swap_count ?? 0;
+  const swapLimitReached = mySwapCount >= 2;
 
   const handleSend = async () => {
     if (!token || !target) return;
     setSubmitting(true);
     try {
-      await swapsApi.request(target.user_id, groupId, token);
-      Alert.alert(
-        'Berhasil!',
-        `Request tukar giliran dengan ${target.user.name ?? target.user.phone} telah terkirim. Menunggu konfirmasi.`,
-        [{ text: 'OK', onPress: () => navigation.goBack() }],
-      );
+      const swap = await swapsApi.request(target.user_id, groupId, token);
+      navigation.replace('SwapStatus', { requestId: swap.id });
     } catch (e: any) {
       Alert.alert('Gagal Mengirim', e?.message ?? 'Terjadi kesalahan. Coba lagi.');
     } finally {
@@ -112,9 +118,24 @@ export function RequestSwapScreen({ navigation, route }: Props) {
       <ScrollView contentContainerStyle={styles.body}>
         <View style={styles.infoBox}>
           <Icon name="info" size={19} color={Colors.primaryInk} />
-          <Text style={styles.infoText}>
-            Giliranmu <Text style={styles.bold}>periode {myPeriod}</Text>. Pilih anggota untuk ajukan tukar giliran.
-          </Text>
+          <View style={styles.infoContent}>
+            <Text style={styles.infoText}>
+              Giliranmu <Text style={styles.bold}>periode {myPeriod}</Text>. Pilih anggota untuk ajukan tukar giliran.
+            </Text>
+            {group && (() => {
+              const me = group.members.find((m) => m.user_id === myUserId);
+              if (!me) return null;
+              const MAX_SWAP = 2;
+              const used = me.swap_count ?? 0;
+              const remaining = MAX_SWAP - used;
+              return (
+                <Text style={[styles.swapQuota, remaining <= 0 && styles.swapQuotaEmpty]}>
+                  Sisa batas tukar: {remaining}/{MAX_SWAP}
+                  {remaining <= 0 ? ' — Batas tercapai' : ''}
+                </Text>
+              );
+            })()}
+          </View>
         </View>
 
         <View style={styles.timeline}>
@@ -125,22 +146,30 @@ export function RequestSwapScreen({ navigation, route }: Props) {
             const slot = m.slot_order ?? 0;
             const isPast = slot < currentPeriod && !isMe && !noSlot;
             const isCurrent = slot === currentPeriod && !isMe && !noSlot;
+            const hasWon = winnerIds.has(m.user_id) && !isMe;
             const isTarget = target?.user_id === m.user_id;
-            const disabled = isPast || isMe || isCurrent || noSlot;
+            const disabled = isPast || isMe || isCurrent || noSlot || hasWon;
             return (
               <TouchableOpacity
                 key={m.user_id}
-                onPress={() => !disabled && setTarget(isTarget ? null : m)}
-                disabled={disabled}
+                onPress={() => {
+                  if (hasWon) {
+                    Alert.alert('Tidak Bisa Tukar', `${m.user.name ?? m.user.phone} sudah pernah memenangkan undian dan menerima uang arisan. Tukar giliran dengan anggota yang belum menang.`);
+                    return;
+                  }
+                  if (!disabled) setTarget(isTarget ? null : m);
+                }}
+                disabled={disabled && !hasWon}
                 style={[
                   styles.slot,
                   isMe && styles.slotMe,
                   isTarget && styles.slotTarget,
                   disabled && !isMe && styles.slotDisabled,
+                  hasWon && styles.slotWon,
                 ]}
                 activeOpacity={0.7}
               >
-                <View style={[styles.slotNum, isCurrent && styles.slotNumCurrent]}>
+                <View style={[styles.slotNum, isCurrent && styles.slotNumCurrent, hasWon && styles.slotNumWon]}>
                   <Text style={[styles.slotNumText, isCurrent && styles.slotNumTextCurrent]}>
                     {noSlot ? '?' : slot}
                   </Text>
@@ -154,8 +183,9 @@ export function RequestSwapScreen({ navigation, route }: Props) {
                 </View>
                 {isMe && <Pill tone="mint">Posisimu</Pill>}
                 {isTarget && <Pill tone="amber">Tukar ke sini</Pill>}
-                {isCurrent && <Pill tone="solid">Sekarang</Pill>}
-                {isPast && <Pill tone="neutral">Selesai</Pill>}
+                {isCurrent && !hasWon && <Pill tone="solid">Sekarang</Pill>}
+                {isPast && !hasWon && <Pill tone="neutral">Selesai</Pill>}
+                {hasWon && <Pill tone="mint">Sudah Menang</Pill>}
                 {noSlot && <Pill tone="neutral">Belum diatur</Pill>}
               </TouchableOpacity>
             );
@@ -167,7 +197,7 @@ export function RequestSwapScreen({ navigation, route }: Props) {
           size="lg"
           icon="swap"
           onPress={handleSend}
-          disabled={!target || !isOnline || submitting}
+          disabled={!target || !isOnline || submitting || swapLimitReached}
           loading={submitting}
           style={styles.cta}
         >
@@ -175,7 +205,10 @@ export function RequestSwapScreen({ navigation, route }: Props) {
             ? `Kirim request: P${myPeriod} ↔ P${target.slot_order} (${target.user.name ?? target.user.phone})`
             : 'Pilih anggota tujuan'}
         </Btn>
-        {!isOnline && (
+        {swapLimitReached && (
+          <Text style={styles.offlineNote}>Batas tukar giliran (2×) sudah tercapai untuk grup ini</Text>
+        )}
+        {!isOnline && !swapLimitReached && (
           <Text style={styles.offlineNote}>Butuh koneksi internet untuk melakukan aksi ini</Text>
         )}
       </ScrollView>
@@ -197,14 +230,22 @@ const styles = StyleSheet.create({
     padding: 14,
     marginBottom: 16,
   },
+  infoContent: { flex: 1 },
   infoText: {
-    flex: 1,
     fontFamily: Fonts.bodyRegular,
     fontSize: 12.5,
     color: Colors.primaryInk,
     lineHeight: 19,
   },
   bold: { fontFamily: Fonts.bodySemiBold, fontWeight: '600' },
+  swapQuota: {
+    fontFamily: Fonts.bodySemiBold,
+    fontSize: 11.5,
+    color: Colors.primaryInk,
+    fontWeight: '600',
+    marginTop: 5,
+  },
+  swapQuotaEmpty: { color: Colors.danger },
   timeline: { position: 'relative', gap: 9 },
   timelineLine: {
     position: 'absolute',
@@ -238,6 +279,8 @@ const styles = StyleSheet.create({
     borderStyle: 'dashed',
   },
   slotDisabled: { opacity: 0.45 },
+  slotWon: { backgroundColor: Colors.primaryTint, opacity: 0.7 },
+  slotNumWon: { borderColor: Colors.primary, backgroundColor: Colors.primaryTint },
   slotNum: {
     width: 38,
     height: 38,

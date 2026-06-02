@@ -12,10 +12,39 @@ import { AppBar } from '../../components/ui/AppBar';
 import { Segmented } from '../../components/ui/Segmented';
 import { Avatar } from '../../components/ui/Avatar';
 import { Icon } from '../../components/ui/Icon';
+import { StateView } from '../../components/ui/StateView';
 import { OfflineBanner } from '../../components/OfflineBanner';
 import { useNetworkStatus } from '../../hooks/useNetworkStatus';
 import { useAuth } from '../../hooks/useAuth';
-import { fetchMessages, sendMessage, subscribeMessages, ChatMessage } from '../../api/chat';
+import { fetchMessages, sendMessage, subscribeMessages, sendTyping, getTyping, ChatMessage } from '../../api/chat';
+import { useChatSound } from '../../hooks/useChatSound';
+
+type DateDivider = { type: 'date'; id: string; label: string };
+type ListItem = ChatMessage | DateDivider;
+
+function formatDateLabel(d: Date): string {
+  const today = new Date();
+  const yesterday = new Date(today);
+  yesterday.setDate(yesterday.getDate() - 1);
+  if (d.toDateString() === today.toDateString()) return 'Hari ini';
+  if (d.toDateString() === yesterday.toDateString()) return 'Kemarin';
+  return d.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+}
+
+// Untuk inverted FlatList (data: newest→oldest), divider disisipkan setelah
+// pesan terakhir tiap hari — sehingga secara visual muncul di atas grup tersebut.
+function insertDateDividers(messages: ChatMessage[]): ListItem[] {
+  const items: ListItem[] = [];
+  for (let i = 0; i < messages.length; i++) {
+    items.push(messages[i]);
+    const currDate = new Date(messages[i].created_at).toDateString();
+    const nextDate = i + 1 < messages.length ? new Date(messages[i + 1].created_at).toDateString() : null;
+    if (currDate !== nextDate) {
+      items.push({ type: 'date', id: `divider-${currDate}`, label: formatDateLabel(new Date(messages[i].created_at)) });
+    }
+  }
+  return items;
+}
 
 type Props = NativeStackScreenProps<AppStackParamList, 'Chat'>;
 
@@ -24,9 +53,27 @@ function formatTime(iso: string): string {
   return d.toLocaleTimeString('id', { hour: '2-digit', minute: '2-digit' });
 }
 
+function buildPinnedText(
+  periodNumber?: number,
+  winnerName?: string | null,
+  paidCount?: number,
+  memberCount?: number,
+  dueDate?: string | null,
+): string {
+  if (!periodNumber) return 'Periode aktif · Tap untuk detail';
+  const parts: string[] = [`Periode ${periodNumber}`];
+  if (winnerName) parts[0] += `: ${winnerName} menang`;
+  if (paidCount !== undefined && memberCount) parts.push(`${paidCount}/${memberCount} lunas`);
+  if (dueDate) {
+    const days = Math.max(0, Math.ceil((new Date(dueDate).getTime() - Date.now()) / 86400000));
+    parts.push(days === 0 ? 'Hari ini' : `H-${days}`);
+  }
+  return parts.join(' · ');
+}
+
 function SkeletonBubble({ me }: { me?: boolean }) {
   return (
-    <View style={[styles.msgRow, me && styles.msgRowMe]}>
+    <View style={me ? styles.msgWrapperMe : styles.msgWrapper}>
       {!me && <View style={styles.skeletonAvatar} />}
       <View style={[styles.skeletonBubble, me && styles.skeletonBubbleMe]} />
     </View>
@@ -34,7 +81,7 @@ function SkeletonBubble({ me }: { me?: boolean }) {
 }
 
 export function ChatScreen({ navigation, route }: Props) {
-  const { groupId, groupName, memberCount, ketuaId } = route.params;
+  const { groupId, groupName, memberCount, ketuaId, periodNumber, winnerName, paidCount, dueDate } = route.params;
   const { user, token } = useAuth();
   const isOnline = useNetworkStatus();
 
@@ -46,9 +93,13 @@ export function ChatScreen({ navigation, route }: Props) {
   const [hasMore, setHasMore] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [filter, setFilter] = useState('Semua');
+  const [typingUsers, setTypingUsers] = useState<{ id: string; name: string }[]>([]);
 
   // userNameCache: user_id → name (diisi dari initial load, dipakai untuk realtime events)
   const userNameCache = useRef<Record<string, string>>({});
+  const typingDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const { playNotification } = useChatSound();
 
   const flatRef = useRef<FlatList>(null);
 
@@ -93,6 +144,20 @@ export function ChatScreen({ navigation, route }: Props) {
     loadMessages();
   }, [loadMessages]);
 
+  // Poll typing indicator tiap 3 detik saat online
+  useEffect(() => {
+    if (!isOnline || !token) return;
+    const poll = setInterval(async () => {
+      try {
+        const res = await getTyping(token, groupId);
+        setTypingUsers(res.typing);
+      } catch {
+        // silently fail — typing indicator tidak kritikal
+      }
+    }, 3000);
+    return () => clearInterval(poll);
+  }, [groupId, token, isOnline]);
+
   // Supabase Realtime subscription — gantikan polling
   useEffect(() => {
     const unsubscribe = subscribeMessages(groupId, (rawMsg) => {
@@ -103,14 +168,26 @@ export function ChatScreen({ navigation, route }: Props) {
       setMessages((prev) => {
         // Dedupe: jika message ID sudah ada (dari optimistic update), skip
         if (prev.some((m) => m.id === fullMsg.id)) return prev;
+        // Play sound hanya untuk pesan dari orang lain
+        if (rawMsg.user_id !== user?.id) playNotification();
         return [fullMsg, ...prev];
       });
     });
     return unsubscribe;
-  }, [groupId]);
+  }, [groupId, user?.id, playNotification]);
+
+  const handleDraftChange = (text: string) => {
+    setDraft(text);
+    if (!isOnline || !token || !text.trim()) return;
+    if (typingDebounceRef.current) clearTimeout(typingDebounceRef.current);
+    typingDebounceRef.current = setTimeout(() => {
+      sendTyping(token, groupId).catch(() => {});
+    }, 500);
+  };
 
   const handleSend = async () => {
     if (!draft.trim() || !isOnline || !token || sending) return;
+    if (typingDebounceRef.current) clearTimeout(typingDebounceRef.current);
     const content = draft.trim();
     setDraft('');
     setSending(true);
@@ -128,13 +205,24 @@ export function ChatScreen({ navigation, route }: Props) {
     }
   };
 
-  const filtered = messages.filter((m) => {
-    if (filter === 'Semua') return true;
-    if (filter === 'Sistem') return m.type === 'system';
-    return m.type === 'user';
-  });
+  const filtered: ListItem[] = insertDateDividers(
+    messages.filter((m) => {
+      if (filter === 'Semua') return true;
+      if (filter === 'Sistem') return m.type === 'system';
+      return m.type === 'user';
+    }),
+  );
 
-  const renderItem = ({ item }: { item: ChatMessage }) => {
+  const renderItem = ({ item }: { item: ListItem }) => {
+    if ('type' in item && item.type === 'date') {
+      return (
+        <View style={styles.dateDivider}>
+          <View style={styles.dateLine} />
+          <Text style={styles.dateLabel}>{item.label}</Text>
+          <View style={styles.dateLine} />
+        </View>
+      );
+    }
     if (item.type === 'system') {
       return (
         <View style={styles.sysRow}>
@@ -147,23 +235,38 @@ export function ChatScreen({ navigation, route }: Props) {
     }
     const isMe = item.user_id === user?.id;
     const isKetua = item.user_id === ketuaId;
+    const displayName = item.user_name ?? 'Anggota';
+
+    if (isMe) {
+      return (
+        <View style={styles.msgWrapperMe}>
+          <View style={styles.bubbleMe}>
+            <Text style={styles.msgTextMe}>{item.content}</Text>
+          </View>
+          <Text style={styles.msgTimeMe}>{formatTime(item.created_at)}</Text>
+        </View>
+      );
+    }
+
     return (
-      <View style={[styles.msgRow, isMe && styles.msgRowMe]}>
-        {!isMe && <Avatar name={item.user_name ?? '?'} size={28} />}
-        <View style={[styles.bubble, isMe && styles.bubbleMe]}>
-          {!isMe && (
+      <View style={styles.msgWrapper}>
+        <View style={styles.avatarContentRow}>
+          <Avatar name={displayName} size={28} />
+          <View>
             <View style={styles.senderRow}>
-              <Text style={styles.senderName}>{item.user_name}</Text>
+              <Text style={styles.senderName}>{displayName}</Text>
               {isKetua && (
                 <View style={styles.ketuaBadge}>
                   <Text style={styles.ketuaLabel}>Ketua</Text>
                 </View>
               )}
             </View>
-          )}
-          <Text style={[styles.msgText, isMe && styles.msgTextMe]}>{item.content}</Text>
-          <Text style={[styles.msgTime, isMe && styles.msgTimeMe]}>{formatTime(item.created_at)}</Text>
+            <View style={styles.bubble}>
+              <Text style={styles.msgText}>{item.content}</Text>
+            </View>
+          </View>
         </View>
+        <Text style={styles.msgTime}>{formatTime(item.created_at)}</Text>
       </View>
     );
   };
@@ -184,7 +287,9 @@ export function ChatScreen({ navigation, route }: Props) {
 
       <TouchableOpacity style={styles.pinned} onPress={() => navigation.goBack()}>
         <Icon name="trophy" size={18} color={Colors.primaryInk} />
-        <Text style={styles.pinnedText} numberOfLines={1}>Periode aktif · Tap untuk detail</Text>
+        <Text style={styles.pinnedText} numberOfLines={1}>
+          {buildPinnedText(periodNumber, winnerName, paidCount, memberCount, dueDate)}
+        </Text>
         <Icon name="chevronRight" size={17} color={Colors.primaryInk} />
       </TouchableOpacity>
 
@@ -204,8 +309,15 @@ export function ChatScreen({ navigation, route }: Props) {
               <Text style={styles.retryLabel}>Coba Lagi</Text>
             </TouchableOpacity>
           </View>
+        ) : filtered.length === 0 ? (
+          <StateView
+            icon="message"
+            tone="mint"
+            title="Belum ada obrolan"
+            body="Jadi yang pertama menyapa! Event sistem seperti undian & konfirmasi bayar juga akan tampil di sini."
+          />
         ) : (
-          <FlatList
+          <FlatList<ListItem>
             ref={flatRef}
             data={filtered}
             keyExtractor={(item) => item.id}
@@ -215,21 +327,23 @@ export function ChatScreen({ navigation, route }: Props) {
             onEndReached={loadMore}
             onEndReachedThreshold={0.3}
             ListFooterComponent={loadingMore ? <ActivityIndicator color={Colors.primary} style={{ marginVertical: 12 }} /> : null}
-            ListEmptyComponent={
-              <View style={styles.centered}>
-                <Text style={styles.emptyText}>Belum ada pesan. Mulai ngobrol!</Text>
-              </View>
-            }
           />
         )}
 
+        {typingUsers.length > 0 && (
+          <View style={styles.typingBar}>
+            <Text style={styles.typingText}>
+              {typingUsers.map((u) => u.name).join(', ')} sedang mengetik...
+            </Text>
+          </View>
+        )}
         <View style={styles.inputBar}>
           <TouchableOpacity style={styles.attachBtn}>
             <Icon name="plus" size={22} color={Colors.primaryInk} strokeWidth={2} />
           </TouchableOpacity>
           <TextInput
             value={draft}
-            onChangeText={setDraft}
+            onChangeText={handleDraftChange}
             placeholder={isOnline ? 'Tulis pesan...' : 'Tidak bisa kirim pesan saat offline'}
             placeholderTextColor={Colors.muted}
             style={styles.input}
@@ -263,7 +377,10 @@ const styles = StyleSheet.create({
   errorText: { fontFamily: Fonts.bodyRegular, fontSize: 14, color: Colors.danger, textAlign: 'center', marginBottom: 12 },
   retryBtn: { backgroundColor: Colors.primary, paddingHorizontal: 20, paddingVertical: 10, borderRadius: 8 },
   retryLabel: { fontFamily: Fonts.bodySemiBold, fontSize: 14, color: Colors.white, fontWeight: '600' },
-  emptyText: { fontFamily: Fonts.bodyRegular, fontSize: 14, color: Colors.muted, textAlign: 'center' },
+  msgContentEmpty: { flexGrow: 1 },
+  dateDivider: { flexDirection: 'row', alignItems: 'center', gap: 8, marginVertical: 6 },
+  dateLine: { flex: 1, height: 1, backgroundColor: Colors.border },
+  dateLabel: { fontFamily: Fonts.bodyRegular, fontSize: 11.5, color: Colors.muted },
   skeletonList: { flex: 1, padding: 16, gap: 12 },
   skeletonAvatar: { width: 28, height: 28, borderRadius: 14, backgroundColor: Colors.border },
   skeletonBubble: { height: 44, width: '55%', borderRadius: 18, backgroundColor: Colors.border },
@@ -271,18 +388,23 @@ const styles = StyleSheet.create({
   sysRow: { alignItems: 'center' },
   sysBubble: { flexDirection: 'row', alignItems: 'center', gap: 7, maxWidth: '85%', backgroundColor: Colors.surface, borderWidth: 1, borderColor: Colors.border, borderRadius: 999, paddingVertical: 6, paddingHorizontal: 13 },
   sysText: { fontFamily: Fonts.bodyMedium, fontSize: 11.5, color: Colors.mutedStrong, fontWeight: '500', lineHeight: 16, flexShrink: 1 },
-  msgRow: { flexDirection: 'row', gap: 8, alignItems: 'flex-end', justifyContent: 'flex-start' },
-  msgRowMe: { justifyContent: 'flex-end' },
-  bubble: { maxWidth: '72%', backgroundColor: Colors.card, borderWidth: 1, borderColor: Colors.border, borderRadius: 18, borderBottomLeftRadius: 5, padding: 9, paddingHorizontal: 13, shadowColor: '#101828', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.04, shadowRadius: 2, elevation: 1 },
-  bubbleMe: { backgroundColor: Colors.primary, borderWidth: 0, borderRadius: 18, borderBottomRightRadius: 5, borderBottomLeftRadius: 18 },
+  // other user message layout
+  msgWrapper: { alignSelf: 'flex-start', maxWidth: '78%' },
+  avatarContentRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 8 },
   senderRow: { flexDirection: 'row', alignItems: 'center', gap: 5, marginBottom: 3 },
   senderName: { fontFamily: Fonts.bodySemiBold, fontSize: 11, color: Colors.muted, fontWeight: '600' },
+  bubble: { backgroundColor: Colors.card, borderWidth: 1, borderColor: Colors.border, borderRadius: 18, borderBottomLeftRadius: 5, padding: 9, paddingHorizontal: 13, shadowColor: '#101828', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.04, shadowRadius: 2, elevation: 1 },
+  msgText: { fontFamily: Fonts.bodyRegular, fontSize: 14, lineHeight: 20, color: Colors.ink },
+  msgTime: { fontFamily: Fonts.bodyRegular, fontSize: 10, color: Colors.muted, marginTop: 3, marginLeft: 36 },
+  // own message layout
+  msgWrapperMe: { alignSelf: 'flex-end', maxWidth: '78%' },
+  bubbleMe: { backgroundColor: Colors.primary, borderRadius: 18, borderBottomRightRadius: 5, padding: 9, paddingHorizontal: 13 },
+  msgTextMe: { fontFamily: Fonts.bodyRegular, fontSize: 14, lineHeight: 20, color: Colors.white },
+  msgTimeMe: { fontFamily: Fonts.bodyRegular, fontSize: 10, color: Colors.muted, marginTop: 3, textAlign: 'right' },
   ketuaBadge: { backgroundColor: Colors.primaryTint, borderRadius: 4, paddingHorizontal: 5, paddingVertical: 1 },
   ketuaLabel: { fontFamily: Fonts.bodySemiBold, fontSize: 9.5, color: Colors.primaryInk, fontWeight: '700' },
-  msgText: { fontFamily: Fonts.bodyRegular, fontSize: 14, lineHeight: 20, color: Colors.ink },
-  msgTextMe: { color: Colors.white },
-  msgTime: { fontFamily: Fonts.bodyRegular, fontSize: 10, color: Colors.muted, marginTop: 3, textAlign: 'left' },
-  msgTimeMe: { textAlign: 'right', color: 'rgba(255,255,255,0.7)' },
+  typingBar: { paddingHorizontal: 16, paddingVertical: 4, backgroundColor: Colors.bg },
+  typingText: { fontFamily: Fonts.bodyRegular, fontSize: 12, color: Colors.muted, fontStyle: 'italic' },
   inputBar: { flexShrink: 0, padding: 10, paddingHorizontal: 16, paddingBottom: 26, borderTopWidth: 1, borderTopColor: Colors.border, flexDirection: 'row', gap: 10, alignItems: 'center', backgroundColor: Colors.bg },
   attachBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: Colors.surface, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
   input: { flex: 1, minHeight: 42, maxHeight: 100, borderRadius: 999, borderWidth: 1, borderColor: Colors.borderStrong, paddingHorizontal: 16, paddingVertical: 10, fontFamily: Fonts.bodyRegular, fontSize: 14, color: Colors.ink, backgroundColor: Colors.bg },

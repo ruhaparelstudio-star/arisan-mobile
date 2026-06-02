@@ -51,8 +51,9 @@ export function SwapInboxScreen({ navigation }: Props) {
     setErrorMsg('');
     try {
       const res = await swapsApi.getMySwaps(token);
+      // 'pending' = normal swap, 'ketua_pending' = ketua inisiasi swap (perlu target accept)
       const incoming = res.swaps.filter(
-        (s) => s.target_id === user?.id && s.status === 'pending',
+        (s) => s.target_id === user?.id && (s.status === 'pending' || s.status === 'ketua_pending'),
       );
       setSwaps(incoming);
     } catch (e: any) {
@@ -169,7 +170,12 @@ export function SwapInboxScreen({ navigation }: Props) {
                     <View style={styles.row}>
                       <Avatar name={name} size={44} />
                       <View style={styles.info}>
-                        <Text style={styles.name}>{name}</Text>
+                        <View style={styles.nameRow}>
+                          <Text style={styles.name}>{name}</Text>
+                          {s.status === 'ketua_pending' && (
+                            <Pill tone="amber">Dari Ketua</Pill>
+                          )}
+                        </View>
                         <Text style={styles.sub}>Dikirim {fmtDate(s.created_at)}</Text>
                       </View>
                       {isActing ? (
@@ -240,6 +246,7 @@ const styles = StyleSheet.create({
   },
   card: { marginBottom: 0 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  nameRow: { flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' },
   info: { flex: 1 },
   name: {
     fontFamily: Fonts.bodySemiBold,

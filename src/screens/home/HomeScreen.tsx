@@ -6,6 +6,7 @@ import {
   StyleSheet,
   TouchableOpacity,
   RefreshControl,
+  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
@@ -121,6 +122,21 @@ export function HomeScreen({ navigation }: Props) {
   }, [token, isOnline, urgentGroupId, user?.id]);
 
   const onRefresh = () => { setRefreshing(true); loadGroups(true); };
+
+  const checkName = useCallback((action: () => void) => {
+    if (user?.name) {
+      action();
+    } else {
+      Alert.alert(
+        'Lengkapi profil dulu',
+        'Kamu perlu mengisi nama sebelum membuat atau bergabung ke grup arisan.',
+        [
+          { text: 'Batal', style: 'cancel' },
+          { text: 'Isi Nama', onPress: () => (navigation as any).navigate('Profil') },
+        ],
+      );
+    }
+  }, [user?.name, navigation]);
 
   const urgentGroup = useMemo(() => groups.find((g) => g.status === 'active') ?? null, [groups]);
 
@@ -264,7 +280,7 @@ export function HomeScreen({ navigation }: Props) {
           <Btn
             size="md"
             icon="plus"
-            onPress={() => navigation.navigate('BuatGrupStep1')}
+            onPress={() => checkName(() => navigation.navigate('BuatGrupStep1'))}
             disabled={!isOnline}
             style={styles.flex}
           >
@@ -273,7 +289,7 @@ export function HomeScreen({ navigation }: Props) {
           <Btn
             size="md"
             variant="outline"
-            onPress={() => navigation.navigate('JoinGrup')}
+            onPress={() => checkName(() => navigation.navigate('JoinGrup'))}
             disabled={!isOnline}
             style={styles.flex}
           >

@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { View, ScrollView, StyleSheet, TouchableOpacity, RefreshControl } from 'react-native';
+import { View, ScrollView, StyleSheet, TouchableOpacity, RefreshControl, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect, CompositeScreenProps } from '@react-navigation/native';
 import { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
@@ -63,6 +63,21 @@ export function GroupsScreen({ navigation }: Props) {
 
   const onRefresh = () => { setRefreshing(true); load(true); };
 
+  const checkName = useCallback((action: () => void) => {
+    if (user?.name) {
+      action();
+    } else {
+      Alert.alert(
+        'Lengkapi profil dulu',
+        'Kamu perlu mengisi nama sebelum membuat atau bergabung ke grup arisan.',
+        [
+          { text: 'Batal', style: 'cancel' },
+          { text: 'Isi Nama', onPress: () => (navigation as any).navigate('Profil') },
+        ],
+      );
+    }
+  }, [user?.name, navigation]);
+
   const filtered = groups.filter((g) => {
     if (filter === 'Sebagai ketua') return g.base.created_by === user?.id;
     if (filter === 'Anggota') return g.base.created_by !== user?.id;
@@ -79,9 +94,9 @@ export function GroupsScreen({ navigation }: Props) {
           title="Belum ada grup arisan"
           body="Buat grup baru sebagai ketua, atau gabung pakai kode undangan."
           primary="Buat grup pertama"
-          onPrimary={() => navigation.navigate('BuatGrupStep1')}
+          onPrimary={() => checkName(() => navigation.navigate('BuatGrupStep1'))}
           secondary="Punya kode? Gabung di sini"
-          onSecondary={() => navigation.navigate('JoinGrup')}
+          onSecondary={() => checkName(() => navigation.navigate('JoinGrup'))}
         />
       </SafeAreaView>
     );
@@ -94,7 +109,7 @@ export function GroupsScreen({ navigation }: Props) {
         title="Grup kamu"
         right={
           <TouchableOpacity
-            onPress={() => navigation.navigate('BuatGrupStep1')}
+            onPress={() => checkName(() => navigation.navigate('BuatGrupStep1'))}
             style={styles.addBtn}
           >
             <Icon name="plus" size={22} color={Colors.white} strokeWidth={2.2} />

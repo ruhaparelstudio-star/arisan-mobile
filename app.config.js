@@ -14,7 +14,7 @@ module.exports = {
     name: IS_PROD ? 'Arisan' : 'Arisan (Dev)',
     slug: 'arisanappios',
     owner: 'arsdevdev123',
-    version: '1.0.2',
+    version: '1.0.3',
     orientation: 'portrait',
     icon: './assets/icon.png',
     userInterfaceStyle: 'light',
@@ -38,7 +38,7 @@ module.exports = {
       },
       package: 'com.ruhaparelstudio.arisan',
       googleServicesFile: './google-services.json',
-      versionCode: 3,
+      versionCode: 4,
     },
     extra: {
       appEnv: APP_ENV,

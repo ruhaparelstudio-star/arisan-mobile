@@ -13,5 +13,8 @@ android/
 ios/
 .env
 .env.local
+.env.development
+.env.production
+.env.*.local
 google-services.json
 GoogleService-Info.plist

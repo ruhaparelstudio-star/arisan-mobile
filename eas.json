@@ -6,10 +6,16 @@
   "build": {
     "development": {
       "developmentClient": true,
-      "distribution": "internal"
+      "distribution": "internal",
+      "env": {
+        "APP_ENV": "development"
+      }
     },
     "preview": {
       "distribution": "internal",
+      "env": {
+        "APP_ENV": "development"
+      },
       "android": {
         "buildType": "apk"
       },
@@ -18,20 +24,11 @@
       }
     },
     "production": {
+      "env": {
+        "APP_ENV": "production"
+      },
       "android": {
         "buildType": "app-bundle"
-      }
-    },
-    "test-lab": {
-      "distribution": "internal",
-      "env": {
-        "ENABLE_TEST_BYPASS": "true"
-      },
-      "android": {
-        "buildType": "apk"
-      },
-      "ios": {
-        "simulator": false
       }
     }
   },

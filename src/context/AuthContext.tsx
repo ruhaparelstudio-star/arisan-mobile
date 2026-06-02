@@ -28,8 +28,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       try {
         const t = await storage.get(AUTH_TOKEN_KEY);
         const u = await storage.get(AUTH_USER_KEY);
-        if (t) setToken(t);
-        if (u) setUser(JSON.parse(u));
+        if (t && u) {
+          setToken(t);
+          setUser(JSON.parse(u));
+          return;
+        }
+        // Test Lab bypass: auto-login with pre-seeded JWT (build-time env var)
+        const testJwt = process.env.EXPO_PUBLIC_TEST_JWT;
+        if (testJwt) {
+          try {
+            const payload = JSON.parse(atob(testJwt.split('.')[1]));
+            const testUser: AuthUser = {
+              id: payload.userId,
+              phone: payload.phone,
+              name: null,
+            };
+            await storage.set(AUTH_TOKEN_KEY, testJwt);
+            await storage.set(AUTH_USER_KEY, JSON.stringify(testUser));
+            setToken(testJwt);
+            setUser(testUser);
+          } catch {}
+        }
       } finally {
         setIsLoading(false);
       }

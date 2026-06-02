@@ -27,43 +27,33 @@ if ! gcloud auth print-access-token &>/dev/null; then
   exit 1
 fi
 
-# 2. Cek API_URL
+# 2. API URL — default ke Vercel production
 if [ -z "$API_URL" ]; then
-  echo "[ERROR] API_URL wajib diisi."
-  echo ""
-  echo "Cara expose backend lokal dengan ngrok:"
-  echo "  1. Install: npm install -g ngrok"
-  echo "  2. Jalankan backend: cd arisan-api && npm run dev"
-  echo "  3. Expose: ngrok http 3001"
-  echo "  4. Copy URL ngrok (contoh: https://abc123.ngrok.io)"
-  echo "  5. Jalankan: bash scripts/firebase-test-lab.sh https://abc123.ngrok.io"
-  exit 1
+  API_URL="https://arisan-api.vercel.app"
+  echo "API URL: $API_URL (default production)"
+else
+  echo "API URL: $API_URL"
 fi
-
-echo "API URL: $API_URL"
 gcloud config set project "$FIREBASE_PROJECT" --quiet
 
-# 3. Update .env dengan API URL yang bisa diakses dari internet
+# 3. Refresh test JWT agar auto-login berfungsi
 echo ""
-echo "[1/4] Update .env dengan API URL..."
-cp .env .env.backup
-sed -i "s|EXPO_PUBLIC_API_URL=.*|EXPO_PUBLIC_API_URL=$API_URL|g" .env
-echo "      EXPO_PUBLIC_API_URL=$API_URL"
+echo "[1/4] Refresh test JWT..."
+bash scripts/refresh-test-token.sh
 
-# 4. Build Android release APK
+# 4. Update API URL di .env lalu build APK
 echo ""
 echo "[2/4] Build Android release APK..."
+cp .env .env.backup
+sed -i "s|EXPO_PUBLIC_API_URL=.*|EXPO_PUBLIC_API_URL=$API_URL|g" .env
 cd android
 ./gradlew assembleRelease --quiet
 cd ..
+cp .env.backup .env && rm .env.backup
 APK_PATH="android/app/build/outputs/apk/release/app-release.apk"
 echo "      APK: $APK_PATH ($(du -sh $APK_PATH | cut -f1))"
 
-# 5. Restore .env
-cp .env.backup .env && rm .env.backup
-echo "      .env restored"
-
-# 6. Jalankan Robo Test — Android
+# 5. Jalankan Robo Test — Android (15 menit, crawl seluruh app post-login)
 echo ""
 echo "[3/4] Firebase Test Lab — Android (Pixel2.arm + Pixel6)..."
 gcloud firebase test android run \
@@ -72,7 +62,7 @@ gcloud firebase test android run \
   --robo-script scripts/robo-script.json \
   --device model=Pixel2.arm,version=29,locale=in_ID,orientation=portrait \
   --device model=oriole,version=33,locale=in_ID,orientation=portrait \
-  --timeout 8m \
+  --timeout 15m \
   --results-dir "${RESULTS_DIR}-android" \
   --project "$FIREBASE_PROJECT"
 

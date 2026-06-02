@@ -21,7 +21,9 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#00C897"
       },
-      "package": "com.ruhaparelstudio.arisan"
+      "package": "com.ruhaparelstudio.arisan",
+      "googleServicesFile": "./google-services.json",
+      "versionCode": 1
     },
     "plugins": [
       "expo-secure-store",
@@ -31,7 +33,9 @@
           "sounds": []
         }
       ],
-      "expo-asset"
+      "expo-asset",
+      "@react-native-firebase/app",
+      "@react-native-firebase/crashlytics"
     ]
   }
 }

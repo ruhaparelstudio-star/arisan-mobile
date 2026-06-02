@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react';
-import { View, Text, TextInput, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, TextInput, StyleSheet } from 'react-native';
 import { Colors } from '../../theme/colors';
 import { Fonts } from '../../theme/typography';
 
@@ -7,19 +7,23 @@ interface OtpBoxesProps {
   value: string;
   onChange: (val: string) => void;
   error?: boolean;
+  alphanumeric?: boolean;
+  length?: number;
 }
 
-export function OtpBoxes({ value, onChange, error }: OtpBoxesProps) {
+export function OtpBoxes({ value, onChange, error, alphanumeric, length = 6 }: OtpBoxesProps) {
   const inputs = useRef<(TextInput | null)[]>([]);
   const [focused, setFocused] = useState(0);
 
   const handleChange = (text: string, index: number) => {
-    const digit = text.replace(/\D/g, '').slice(-1);
+    const char = alphanumeric
+      ? text.replace(/[^A-Za-z0-9]/g, '').toUpperCase().slice(-1)
+      : text.replace(/\D/g, '').slice(-1);
     const newVal = value.split('');
-    newVal[index] = digit;
-    const result = newVal.join('').slice(0, 6);
+    newVal[index] = char;
+    const result = newVal.join('').slice(0, length);
     onChange(result);
-    if (digit && index < 5) {
+    if (char && index < length - 1) {
       inputs.current[index + 1]?.focus();
     }
   };
@@ -32,7 +36,7 @@ export function OtpBoxes({ value, onChange, error }: OtpBoxesProps) {
 
   return (
     <View style={styles.row}>
-      {[0, 1, 2, 3, 4, 5].map((i) => {
+      {Array.from({ length }, (_, i) => i).map((i) => {
         const filled = !!value[i];
         const active = i === value.length && i === focused;
         return (
@@ -49,7 +53,7 @@ export function OtpBoxes({ value, onChange, error }: OtpBoxesProps) {
             onChangeText={(t) => handleChange(t, i)}
             onKeyPress={({ nativeEvent }) => handleKeyPress(nativeEvent.key, i)}
             onFocus={() => setFocused(i)}
-            keyboardType="number-pad"
+            keyboardType={alphanumeric ? 'ascii-capable' : 'number-pad'}
             maxLength={1}
             textAlign="center"
             selectionColor={Colors.primary}

@@ -67,7 +67,7 @@ export async function fetchMessages(
   const rows = (data ?? []) as Array<{
     id: string;
     group_id: string;
-    user_id: string;
+    user_id: string | null;
     content: string;
     created_at: string;
     user: { name: string | null; phone: string } | null;
@@ -77,11 +77,11 @@ export async function fetchMessages(
   const messages: ChatMessage[] = (has_more ? rows.slice(0, limit) : rows).map((r) => ({
     id: r.id,
     group_id: r.group_id,
-    user_id: r.user_id,
+    user_id: r.user_id ?? '',
     content: r.content,
     created_at: r.created_at,
-    user_name: r.user?.name ?? r.user?.phone ?? 'Anggota',
-    type: 'user',
+    user_name: r.user?.name ?? r.user?.phone ?? 'Sistem',
+    type: r.user_id == null ? 'system' : 'user',
   }));
 
   return { messages, has_more };
@@ -103,11 +103,11 @@ export function subscribeMessages(
         const raw = payload.new as {
           id: string;
           group_id: string;
-          user_id: string;
+          user_id: string | null;
           content: string;
           created_at: string;
         };
-        onNewMessage({ ...raw, type: 'user' });
+        onNewMessage({ ...raw, user_id: raw.user_id ?? '', type: raw.user_id == null ? 'system' : 'user' });
       },
     )
     .subscribe();
@@ -138,4 +138,15 @@ export function getActivityLog(
 ): Promise<ActivityLogResponse> {
   const params = new URLSearchParams({ limit: String(limit), offset: String(offset) });
   return apiCall(`/api/groups/${groupId}/activity-log?${params}`, { token });
+}
+
+export function sendTyping(token: string, groupId: string): Promise<{ ok: boolean }> {
+  return apiCall(`/api/groups/${groupId}/typing`, { method: 'POST', token });
+}
+
+export function getTyping(
+  token: string,
+  groupId: string,
+): Promise<{ typing: { id: string; name: string }[] }> {
+  return apiCall(`/api/groups/${groupId}/typing`, { token });
 }

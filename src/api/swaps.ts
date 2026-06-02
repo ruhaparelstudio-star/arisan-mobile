@@ -5,7 +5,7 @@ export interface Swap {
   group_id: string;
   requester_id: string;
   target_id: string;
-  status: 'pending' | 'waiting_ketua' | 'target_accepted' | 'target_rejected' | 'approved' | 'ketua_rejected';
+  status: 'pending' | 'ketua_pending' | 'waiting_ketua' | 'target_accepted' | 'target_rejected' | 'approved' | 'ketua_rejected';
   created_at: string;
   requester?: { name: string | null; phone: string };
   target?: { name: string | null; phone: string };
@@ -43,4 +43,12 @@ export const swapsApi = {
 
   getGroupSwaps: (groupId: string, token: string) =>
     apiCall<{ swaps: Swap[] }>(`/api/swaps/group/${groupId}`, { token }),
+
+  // Mode 2: ketua inisiatif swap antara dua anggota
+  requestAsKetua: (memberAId: string, memberBId: string, groupId: string, token: string) =>
+    apiCall<{ swap: Swap }>('/api/swaps/ketua', {
+      method: 'POST',
+      body: JSON.stringify({ member_a_id: memberAId, member_b_id: memberBId, group_id: groupId }),
+      token,
+    }).then((r) => r.swap),
 };

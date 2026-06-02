@@ -78,6 +78,7 @@ export function SplashScreen({ navigation }: Props) {
           iconRight="arrowRight"
           onPress={() => navigation.navigate('PhoneInput')}
           style={styles.cta}
+          testID="btn_mulai"
         >
           Mulai
         </Btn>

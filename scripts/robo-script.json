@@ -1,5 +1,9 @@
 [
   {
+    "eventType": "VIEW_CLICKED",
+    "elementDescriptors": [{ "contentDescription": "btn_mulai" }]
+  },
+  {
     "eventType": "VIEW_TEXT_CHANGED",
     "elementDescriptors": [{ "contentDescription": "phone_input" }],
     "replacementText": "8560000100"
@@ -7,10 +11,6 @@
   {
     "eventType": "VIEW_CLICKED",
     "elementDescriptors": [{ "contentDescription": "btn_kirim_kode" }]
-  },
-  {
-    "eventType": "WAIT",
-    "duration": 3000
   },
   {
     "eventType": "VIEW_TEXT_CHANGED",
@@ -41,9 +41,5 @@
     "eventType": "VIEW_TEXT_CHANGED",
     "elementDescriptors": [{ "contentDescription": "otp_input_5" }],
     "replacementText": "6"
-  },
-  {
-    "eventType": "WAIT",
-    "duration": 3000
   }
 ]

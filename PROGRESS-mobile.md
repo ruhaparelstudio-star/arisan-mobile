@@ -289,24 +289,24 @@
 ## MO-7 — Offline Mode
 
 ```
-[ ] src/utils/cache.ts — TTL 24 jam, semua cache keys
-[ ] src/hooks/useNetworkStatus.ts aktif di semua screen
-[ ] OfflineBanner: slide up/down animasi
-[ ] HomeScreen: load dari cache jika offline
-[ ] DetailGrupScreen: load dari cache jika offline
-[ ] PaymentStatusScreen: load dari cache + label "terakhir diperbarui"
-[ ] Semua aksi kritis disabled + tooltip saat offline:
-    [ ] Konfirmasi Bayar
-    [ ] Mulai Undian
-    [ ] Kirim Chat
-    [ ] Buat/Join Grup
-    [ ] Request Swap
-[ ] Auto-refresh saat kembali online
-[ ] Skeleton loading (bukan blank) untuk koneksi lambat
+[x] src/utils/cache.ts — TTL 24 jam, semua cache keys
+[x] src/hooks/useNetworkStatus.ts aktif di semua screen
+[x] OfflineBanner: slide up/down animasi
+[x] HomeScreen: load dari cache jika offline
+[x] DetailGrupScreen: load dari cache jika offline
+[x] PaymentStatusScreen: load dari cache + label "terakhir diperbarui"
+[x] Semua aksi kritis disabled + tooltip saat offline:
+    [x] Konfirmasi Bayar
+    [x] Mulai Undian
+    [x] Kirim Chat
+    [x] Buat/Join Grup
+    [x] Request Swap
+[x] Auto-refresh saat kembali online
+[x] Skeleton loading (bukan blank) untuk koneksi lambat
 ```
 
 **Catatan:**
-> _(isi setelah sesi)_
+> Selesai di sesi MO-7 (2026-05-30). Cache AsyncStorage TTL 24 jam. OfflineBanner animasi slide. Semua aksi kritis disabled.
 
 ---
 
@@ -335,14 +335,56 @@
 
 ---
 
+---
+
+## MO-12 — Gap Resolution (PRD v1.3)
+
+```
+[x] OTPVerifyScreen: tambah failCount state — support link muncul setelah 3× gagal berturut-turut
+[x] groups.ts: tambah swap_count (jumlah_tukar) ke GroupMember interface + adaptMember
+[x] RequestSwapScreen: tampilkan sisa batas tukar (swap_count/2) + disable tombol jika limit tercapai
+
+SUDAH DIFIX DI SESI SEBELUMNYA (dikonfirmasi dari review kode):
+[x] UndianScreen: draw_mode dibaca dari group.draw_mode (bukan hardcoded 'random')
+[x] DetailGrupScreen: myPeriod dibaca dari member.slot_order (bukan hardcoded 1)
+[x] usePaymentRealtime: DELETE event ditangani via payload.old
+[x] DetailGrupScreen: guard current_period_id sebelum navigate ke Bayar
+[x] groups.ts adaptMember: null guard raw.users → { name: 'Pengguna Dihapus' }
+[x] DetailGrupScreen: winner guard null current_period
+[x] SwapInboxScreen: guard user?.id di load() + dependency array
+[x] UndianResultScreen: ketuaId diteruskan dari route.params (sudah fix di MO-DESIGN-SYNC)
+[x] PaymentStatusScreen: audit trail "Dikonfirmasi oleh [Nama] · [waktu]" sudah tampil
+[x] RequestSwapScreen: anggota tanpa slot_order ditampilkan sebagai disabled (bukan disembunyikan)
+```
+
+**TIDAK BISA DILAKUKAN TANPA KONFIRMASI DEVELOPER:**
+```
+[ ] Firebase Crashlytics — perlu: npm install @react-native-firebase/app @react-native-firebase/crashlytics
+    → download google-services.json dari Firebase Console
+    → tambah ke plugins di app.json
+    → npx expo prebuild --clean && npx expo run:android --device
+[ ] MO-5 PROGRESS (PROGRESS-mobile.md belum diupdate) — item belum dicheck
+```
+
+**Catatan:**
+> Sesi MO-12 selesai 2026-06-01. TypeScript: 0 errors. Tidak ada dependency baru.
+> jumlah_tukar dari backend: backend harus memastikan field ini di-include dalam query group members (group_members.jumlah_tukar).
+> OTP fail counter: reset otomatis saat user ganti kode (OTP berhasil → navigate away). Tidak perlu reset eksplisit.
+
+---
+
 ## Keputusan Teknis
 
 ```
-[isi setelah setiap sesi]
+MO-12 (2026-06-01):
+- Firebase Crashlytics tidak diinstall (butuh konfirmasi developer, perlu google-services.json)
+- swap_count (jumlah_tukar) ditambahkan ke GroupMember — backend perlu expose field ini di GET /groups/:id
+- OTP fail counter berbasis state lokal (tidak persist), reset saat navigasi keluar screen
 ```
 
 ## Blocker Aktif
 
 ```
-(kosong)
+- Firebase Crashlytics: butuh konfirmasi developer untuk install @react-native-firebase/app + @react-native-firebase/crashlytics
+- Backend: pastikan jumlah_tukar field direturn di GET /api/groups/:id response (group_members query)
 ```

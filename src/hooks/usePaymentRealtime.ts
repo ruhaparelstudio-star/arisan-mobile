@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { createClient } from '@supabase/supabase-js';
 import { Payment } from '../api/payments';
 
@@ -12,15 +12,14 @@ if (supabaseUrl && supabaseAnonKey) {
 
 export function usePaymentRealtime(periodId: string, initial: Payment[]): Payment[] {
   const [payments, setPayments] = useState<Payment[]>(initial);
-  const initialRef = useRef(initial);
 
-  // sync if initial changes (e.g. after fresh fetch)
+  // Sync when actual payment data changes — use a stable content key to avoid
+  // firing on every re-render where the parent passes a new array reference.
+  const initialKey = initial.map((p) => `${p.user_id}:${p.status}:${p.id ?? ''}`).join(',');
   useEffect(() => {
-    if (initial !== initialRef.current) {
-      initialRef.current = initial;
-      setPayments(initial);
-    }
-  }, [initial]);
+    setPayments(initial);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialKey]);
 
   useEffect(() => {
     if (!supabase || !periodId) return;

@@ -156,7 +156,7 @@ export function UndianScreen({ navigation, route }: Props) {
     if (isKetua || loadingData || undianAlreadyDone) return;
     // Mulai poll setiap 3 detik untuk deteksi undian baru selesai
     setLiveWaiting(true);
-    livePollingRef.current = setInterval(() => { load(false); }, 3000);
+    livePollingRef.current = setInterval(() => { load(false); }, 8000);
     return () => {
       if (livePollingRef.current) clearInterval(livePollingRef.current);
       setLiveWaiting(false);

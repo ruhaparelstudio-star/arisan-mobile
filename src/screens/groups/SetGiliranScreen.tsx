@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -33,6 +33,13 @@ export function SetGiliranScreen({ navigation, route }: Props) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
+  const sortedForLocked = useMemo(() => [...initialMembers].sort((a, b) => {
+    if (a.slot_order == null && b.slot_order == null) return 0;
+    if (a.slot_order == null) return 1;
+    if (b.slot_order == null) return -1;
+    return a.slot_order - b.slot_order;
+  }), [initialMembers]);
+
   const handleSave = async () => {
     if (!token) return;
     setLoading(true);
@@ -66,12 +73,6 @@ export function SetGiliranScreen({ navigation, route }: Props) {
 
   // Locked view — arisan sudah berjalan, urutan tidak bisa diubah
   if (isLocked) {
-    const sorted = [...initialMembers].sort((a, b) => {
-      if (a.slot_order == null && b.slot_order == null) return 0;
-      if (a.slot_order == null) return 1;
-      if (b.slot_order == null) return -1;
-      return a.slot_order - b.slot_order;
-    });
     return (
       <SafeAreaView edges={['top']} style={styles.safe}>
         <AppBar title="Urutan Giliran" onBack={() => navigation.goBack()} />
@@ -80,7 +81,7 @@ export function SetGiliranScreen({ navigation, route }: Props) {
           <Text style={styles.sub}>Arisan sedang berjalan — urutan giliran tidak bisa diubah.</Text>
         </View>
         <View style={styles.listContent}>
-          {sorted.map((item, index) => (
+          {sortedForLocked.map((item, index) => (
             <View key={item.id}>
               <View style={[styles.row, { opacity: 1 }]}>
                 <View style={styles.orderBadge}>
@@ -91,7 +92,7 @@ export function SetGiliranScreen({ navigation, route }: Props) {
                   <Icon name="lock" size={18} color={Colors.muted} strokeWidth={2} />
                 </View>
               </View>
-              {index < sorted.length - 1 && <View style={styles.separator} />}
+              {index < sortedForLocked.length - 1 && <View style={styles.separator} />}
             </View>
           ))}
         </View>

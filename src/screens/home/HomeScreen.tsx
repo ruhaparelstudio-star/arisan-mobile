@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -102,7 +102,7 @@ export function HomeScreen({ navigation }: Props) {
   }, [token, isOnline]);
 
   // Cek apakah user sudah bayar untuk grup aktif pertama
-  const urgentGroupId = groups.find((g) => g.status === 'active')?.id ?? null;
+  const urgentGroupId = useMemo(() => groups.find((g) => g.status === 'active')?.id ?? null, [groups]);
   useEffect(() => {
     if (!token || !isOnline || !urgentGroupId || !user) {
       setMyUrgentPaid(null);
@@ -122,7 +122,7 @@ export function HomeScreen({ navigation }: Props) {
 
   const onRefresh = () => { setRefreshing(true); loadGroups(true); };
 
-  const urgentGroup = groups.find((g) => g.status === 'active') ?? null;
+  const urgentGroup = useMemo(() => groups.find((g) => g.status === 'active') ?? null, [groups]);
 
   if (loading) {
     return (

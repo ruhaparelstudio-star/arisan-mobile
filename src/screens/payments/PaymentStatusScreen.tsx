@@ -110,7 +110,10 @@ export function PaymentStatusScreen({ navigation, route }: Props) {
     }
   }, [token, groupId, periodId, user?.id]);
 
+  const initialLoadDone = useRef(false);
   useEffect(() => {
+    if (initialLoadDone.current) return;
+    initialLoadDone.current = true;
     (async () => {
       const cached = await cache.get<{ payments: Payment[]; period: Period | null; memberMap: Record<string, string>; isKetua: boolean; totalMembers: number }>(CACHE_KEYS.payments(periodId));
       if (cached) {
@@ -124,13 +127,12 @@ export function PaymentStatusScreen({ navigation, route }: Props) {
       }
       if (isOnline) fetchData(!!cached);
     })();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [fetchData, isOnline, periodId]);
 
   useEffect(() => {
+    if (!initialLoadDone.current) return;
     if (isOnline) fetchData(true);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOnline]);
+  }, [isOnline, fetchData]);
 
   const handleAction = async () => {
     if (!token || !modalPayment) return;

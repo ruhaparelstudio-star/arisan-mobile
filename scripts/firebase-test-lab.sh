@@ -38,8 +38,8 @@ echo ""
 gcloud firebase test android run \
   --type robo \
   --app "$APK_PATH" \
-  --device model=Pixel2,version=29,locale=id,orientation=portrait \
-  --device model=Pixel6,version=33,locale=id,orientation=portrait \
+  --device model=Pixel2.arm,version=29,locale=in_ID,orientation=portrait \
+  --device model=oriole,version=33,locale=in_ID,orientation=portrait \
   --robo-directives click:com.arisan.app:btn_mulai=,text:com.arisan.app:input_phone=081234567890 \
   --timeout 5m \
   --results-bucket "$RESULTS_BUCKET" \

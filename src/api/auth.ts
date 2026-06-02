@@ -64,3 +64,13 @@ export function updatePushToken(token: string, pushToken: string): Promise<{ mes
 export function deleteAccount(token: string): Promise<{ message: string }> {
   return apiCall('/api/users/me', { method: 'DELETE', token });
 }
+
+export interface UserStats {
+  group_count: number;
+  total_iuran: number;
+  win_count: number;
+}
+
+export function getUserStats(token: string): Promise<UserStats> {
+  return apiCall('/api/users/me/stats', { token });
+}

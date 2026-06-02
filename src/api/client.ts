@@ -42,7 +42,8 @@ export async function apiCall<T>(
 
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: 'Terjadi kesalahan. Coba lagi.' }));
-    throw new ApiError(res.status, err.error ?? 'Request gagal');
+    const msg = typeof err.error === 'string' ? err.error : 'Request gagal';
+    throw new ApiError(res.status, msg);
   }
   return res.json();
 }

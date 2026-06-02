@@ -215,6 +215,223 @@ git push origin --delete feature/mo-X-<nama>
 > Claude mengisi bagian ini setelah setiap sesi.
 
 ```
+[PRE-PROD FIX · 2026-06-01 — 3 Production Blockers Diperbaiki]
+Ditemukan dari gap audit setelah live device testing. TypeScript 0 errors mobile + backend.
+
+FIX 1 — ProfileScreen stats hardcoded:
+- Masalah: "Rp 0 Total iuran" dan "0× Menang" selalu statis, tidak pernah update.
+- Fix backend: tambah GET /api/users/me/stats (group_count, total_iuran, win_count).
+  - group_count: COUNT dari group_members WHERE user_id
+  - total_iuran: SUM nominal dari payments CONFIRMED JOIN periods→groups
+  - win_count: COUNT dari winners WHERE user_id
+- Fix mobile: ProfileScreen ganti getUserStats() dan render stats real.
+- File: arisan-api/src/routes/users.ts, mobile/src/screens/home/ProfileScreen.tsx
+
+FIX 2 — DetailGrupScreen tidak auto-refresh saat kembali fokus:
+- Masalah: setelah dari Bayar/Undian/Chat, DetailGrup data stale sampai pull-to-refresh manual.
+- Fix: tambah useFocusEffect(useCallback(() => load(), [load])) — sama dengan pola HomeScreen/GroupsScreen.
+- File: src/screens/groups/DetailGrupScreen.tsx
+
+FIX 3 — System messages dari backend (konfirmasi bayar, hasil undian, swap) tidak muncul di ChatScreen mobile:
+- Masalah: backend sendSystemMessage() kirim ke Stream.io channel, tapi mobile baca dari Supabase messages table.
+- Root cause: user_id null diizinkan oleh Supabase (FK tidak block null), tapi tidak ada kolom 'type'.
+- Fix backend: sendSystemMessage() sekarang INSERT ke Supabase messages dengan user_id=null (system message).
+- Fix mobile chat.ts: fetchMessages + subscribeMessages deteksi type='system' dari user_id==null.
+- File: arisan-api/src/services/streamio.ts, mobile/src/api/chat.ts
+
+[DEVICE-TEST · 2026-06-01 — Live Device Testing (Redmi Note 8), 4 Iterasi Loop COMPLETE]
+Test end-to-end di device fisik via USB + adb. Port forwarding: adb reverse tcp:3001 tcp:3001 (backend) + tcp:8081 tcp:8081 (Metro).
+Metro HARUS dijalankan via `npx expo run:android` bukan `npx expo start` (APK debug hanya tahu cara load bundle dari expo run:android Metro).
+
+ALUR YANG BERHASIL DITEST:
+- Splash → PhoneInput → OTPVerify → LoginSuccess → HomeScreen: ✅ semua berfungsi
+- BuatGrupStep1 → Step2 → Step3 → InviteScreen → DetailGrupScreen: ✅
+- ChatScreen: kirim pesan realtime ✅, filter tab (Semua/Obrolan/Sistem) ✅
+- ProfileScreen: data real, menu lengkap ✅
+- NotificationsScreen: empty state benar ✅
+- Tab navigation: Beranda/Grup/Notifikasi/Profil ✅
+
+ALUR YANG BERHASIL DITEST (iterasi 2, 3, 4 — COMPLETE):
+- BuatGrupStep1→2→3: ✅ nama/nominal/frekuensi/periode/mode undian semua berfungsi
+- InviteScreen: ✅ kode HPTH9ZGD muncul, member list real-time polling, WA share, copy
+- DetailGrupScreen: ✅ status card (periode, jatuh tempo, progress, winner), quick actions, ketua actions
+- ChatScreen: ✅ kirim pesan realtime ke Supabase, broadcast undian tampil
+- HomeScreen hero card: ✅ menampilkan "PERLU PERHATIAN" + Bayar button saat ada jatuh tempo
+- PaymentStatusScreen: ✅ member rows tampil, progress bar, realtime update, konfirmasi bayar (1/1 Lunas)
+- UndianScreen: ✅ candidate list real, "Mulai Undian", animasi, navigate ke UndianResult
+- UndianResultScreen: ✅ winner spotlight, daftar pemenang, "Ucapkan selamat di chat", "Lihat semua"
+- RiwayatPemenangScreen: ✅ list per periode dengan tanggal
+- PaymentHistoryScreen: ✅ accordion per periode, lazy-fetch payments per periode saat expand
+- ActivityLogScreen: ✅ list entri aktivitas dengan timestamp (Undian, Bayar, Buat Grup)
+- GroupsScreen: ✅ tab Semua/Ketua/Anggota, group card dengan info real
+- ProfileScreen: ✅ stat, edit nama, menu, Kebijakan Privasi
+- NotificationsScreen: ✅ empty state benar
+- SwapInboxScreen: ✅ incoming requests tampil, Accept berfungsi
+- SwapApprovalScreen: ✅ waiting_ketua swaps tampil, Setujui berfungsi
+- Full Swap flow end-to-end: ✅ Request (user2) → Accept (target/user1) → Approve (ketua) berhasil
+
+DEAD NAVIGATION YANG SUDAH DIPERBAIKI:
+- PaymentHistoryScreen: tidak bisa diakses → tambah tombol "Riwayat" di section Status Bayar DetailGrupScreen
+- SwapInboxScreen: tidak bisa diakses → tambah opsi di submenu Tukar button DetailGrupScreen
+- SwapApprovalScreen: tidak bisa diakses → tambah tombol "Approval Tukar" di Ketua Actions DetailGrupScreen
+
+BUGS DITEMUKAN & DIPERBAIKI (mobile):
+1. HomeScreen tidak auto-refresh setelah buat/join grup:
+   - Masalah: useEffect([loadGroups]) hanya fire saat token/isOnline berubah, tidak saat kembali ke screen.
+   - Fix: tambah useFocusEffect(useCallback(() => load(), [load])) di HomeScreen + GroupsScreen.
+   - Sekarang list grup auto-update setiap kali screen difokus.
+
+2. DetailGrupScreen undian hint muncul salah untuk periode 1 (Mode 2 random):
+   - Masalah: `prevPeriodClosed` di-init ke `false` → undianMode2Blocked = true → hint muncul salah
+   - Fix: init `prevPeriodClosed` ke `true` (safe default — periode 1 tidak ada periode sebelumnya)
+   - File: src/screens/groups/DetailGrupScreen.tsx:95
+
+3. GroupsScreen tidak auto-refresh saat kembali fokus:
+   - Fix: tambah useFocusEffect (sama dengan HomeScreen)
+   - File: src/screens/groups/GroupsScreen.tsx
+
+4. UndianScreen broadcast nama kosong ketika user.name = null:
+   - Masalah: `${result.winner.name}` → null → "**" di chat dan activity log
+   - Fix mobile: fallback `result.winner.name || 'anggota'` di UndianScreen.tsx
+   - Fix backend: `winnerName = winnerUser?.name || winnerUser?.phone || 'anggota'` di undian.ts
+
+5. PaymentHistory screen tidak bisa diakses dari mana pun (dead navigation):
+   - Fix: tambah tombol "Riwayat" di sebelah "Kelola" pada section "Status bayar" di DetailGrupScreen.tsx
+
+BUGS DITEMUKAN & DIPERBAIKI (backend arisan-api):
+1. PaymentStatusScreen kosong — backend payments query gagal dengan ambiguous FK:
+   - Masalah: `select('*, users(id,name,phone)')` gagal karena ada >1 FK dari payments ke users
+   - Error: "Could not embed because more than one relationship was found"
+   - Fix: ganti ke `select('*, users!user_id(id,name,phone)')` di arisan-api/src/services/payments.ts
+   - Akibat: getPayments() selalu return [] → PaymentStatusScreen selalu kosong
+
+2. undian.ts: winnerName fallback ke empty string saat name null → activity log dan broadcast kosong:
+   - Fix: `winnerName = winnerUser?.name || winnerUser?.phone || 'anggota'` + tambah `phone` ke select query
+
+CATATAN KONFIGURASI DEVICE:
+- adb shell input text tidak bisa kirim teks multi-kata (autocomplete keyboard android memotong).
+  Workaround: input kata satu per satu atau tap tombol langsung via koordinat uiautomator.
+- Tab bar (custom RN component) tidak terdeteksi oleh uiautomator dengan bounds benar.
+  Workaround: uiautomator dump dulu untuk dapat koordinat text label, lalu tap di y~2149.
+- TypeScript: 0 errors setelah semua fix.
+
+[FLOW-AUDIT-FIX · 2026-06-01 — Flow Audit + Bug Fixes (COMPLETE)]
+Audit menyeluruh semua flow dari audit sebelumnya. Ditemukan 7 bug, semua diperbaiki. TypeScript: 0 errors.
+
+BUG YANG DIPERBAIKI:
+1. HomeScreen hero card: teks "jatuh tempo 2 hari lagi" hardcoded, tidak pernah update.
+   - Fix: tampilkan nominal + total_periods saja (data tersedia dari Group list API).
+   - Fix: urgentGroup sekarang hanya grup dengan status='active' (bukan groups[0] sembarang).
+   - Fix: kondisi tambah — kalau tidak ada grup active, hero card tidak tampil sama sekali.
+   - File: src/screens/home/HomeScreen.tsx
+
+2. HomeScreen "Sudah bayar" button tidak punya onPress handler — tap tidak melakukan apapun.
+   - Fix: navigate ke GroupDetail agar user bisa bayar dari sana (periodId tidak tersedia di list).
+   - Label diubah ke "Bayar sekarang" yang lebih akurat.
+   - File: src/screens/home/HomeScreen.tsx
+
+3. DetailGrupScreen → RequestSwap: myPeriod null-default ke 1 jika slot_order belum diatur.
+   - Masalah: `members.find(...)?.slot_order ?? 1` → kalau null, dikirim myPeriod=1 yang salah.
+   - Fix: cek slot_order lebih dahulu; jika null → Alert "Hubungi ketua untuk atur giliran", tidak navigate.
+   - File: src/screens/groups/DetailGrupScreen.tsx
+
+4. RequestSwapScreen: setelah request sukses hanya goBack(), tidak navigate ke SwapStatus.
+   - Masalah: user tidak bisa pantau progress swap setelah request.
+   - Fix: navigation.replace('SwapStatus', { requestId: swap.id }) setelah request sukses.
+   - File: src/screens/swaps/RequestSwapScreen.tsx
+
+5. PaymentStatusScreen: member tanpa payment record tidak muncul di list.
+   - Masalah: render dari payments[] saja; member yang belum punya record di DB tidak tampil.
+   - Fix: build fullPayments dari groupData.members, merge dengan payment data → semua member tampil dengan status 'pending' sebagai default.
+   - File: src/screens/payments/PaymentStatusScreen.tsx
+
+6. DetailGrupScreen: keyboardType="numeric" di input tanggal YYYY-MM-DD tidak punya tombol "-".
+   - Fix: ganti ke keyboardType="default".
+   - File: src/screens/groups/DetailGrupScreen.tsx
+
+7. DetailGrupScreen: setelah bubarkan grup, navigation.goBack() → GroupsScreen mungkin stale.
+   - Fix: navigation.reset({ index: 0, routes: [{ name: 'Main' }] }) → kembali ke HomeScreen bersih.
+   - File: src/screens/groups/DetailGrupScreen.tsx
+
+8. UndianScreen: polling `load()` tiap 3s trigger setLoadingData(true/false) → interval restart setiap poll.
+   - Masalah: setiap cycle poll, loadingData berubah → effect cleanup → interval baru dibuat.
+   - Fix: load() terima parameter showLoading=true; polling call load(false) → skip setLoadingData.
+   - File: src/screens/undian/UndianScreen.tsx
+
+[PROD-AUDIT · 2026-06-01 — Production Readiness Audit (COMPLETE)]
+Audit menyeluruh semua alur: register → buat grup → undian → bayar → tukar → chat. TypeScript: 0 errors setelah semua fix.
+
+BUGS DITEMUKAN & DIPERBAIKI:
+1. groups.ts adaptMember: swap_count selalu hardcoded 0 → fix ke raw.jumlah_tukar ?? 0.
+   - RequestSwapScreen/SwapByKetuaScreen sekarang bisa enforce limit 2x tukar per user.
+   - Butuh backend pastikan jumlah_tukar ada di response GET /api/groups/:id members.
+
+2. types.ts: Route BayarDone terdefinisi tapi tidak ada screen & tidak pernah dipakai → dihapus.
+
+3. SwapStatusScreen.tsx: SELURUHNYA pakai data hardcoded (nama, tanggal, steps) → rewrite lengkap:
+   - Fetch swap real via getMySwaps() + filter by requestId
+   - Steps (4 langkah) dibangun dari swap.status actual
+   - Rejected steps tampil icon X + warna merah
+   - Pull-to-refresh, loading state, dan error state
+
+4. .env: EXPO_PUBLIC_PRIVACY_POLICY_URL belum ada → ditambahkan.
+   - OTPVerifyScreen: WA support number hardcoded 6281234567890 → pindah ke EXPO_PUBLIC_SUPPORT_WA
+   - InviteScreen: Play Store URL hardcoded & pakai package ID lama → pindah ke EXPO_PUBLIC_PLAYSTORE_URL
+
+5. HomeScreen bell badge: selalu tampil (hardcoded) → sekarang hanya tampil jika unread_count > 0.
+   - Fetch getNotifications(token, 1) on mount untuk cek unread count.
+
+MASIH PERLU DITINDAK DEVELOPER (bukan kode, tapi konfigurasi):
+- EXPO_PUBLIC_API_URL=localhost:3001 tidak akan bisa di device fisik. Ganti ke IP LAN sebelum test device.
+- EXPO_PUBLIC_PRIVACY_POLICY_URL: isi URL kebijakan privasi asli sebelum publish.
+- EXPO_PUBLIC_SUPPORT_WA: isi nomor WA support asli.
+- google-services.json: isi dengan file asli dari Firebase Console (sekarang masih template).
+- Play Store URL baru aktif setelah app dipublish ke Google Play.
+
+[MO-13 (Backend) · 2026-06-01 — Backend Changes untuk Undian Flow]
+- TIDAK ada migration baru — pendekatan akhir pakai status string 'ketua_pending' di kolom status VARCHAR yang sudah ada (tidak perlu kolom baru). DB verified: 'ketua_pending' diterima tanpa error.
+- arisan-api/src/routes/groups.ts: PUT /:groupId/periods/:periodId/tanggal sekarang mengizinkan pemenang undian (bukan hanya ketua) set tanggal_pelaksanaan, HANYA jika tanggal belum diisi. Ketua bisa override kapan saja. Check via SELECT dari tabel winners (period_id + user_id).
+- arisan-api/src/routes/swaps.ts: tambah POST /api/swaps/ketua — ketua pilih member_a_id dan member_b_id untuk ditukar. Di-register SEBELUM POST / agar tidak tertangkap. Import gs dari services/groups untuk logActivity.
+- arisan-api/src/services/swaps.ts: (1) respondSwap — handle status 'ketua_pending': jika target accepts → auto-approve langsung (skip waiting_ketua), execute swap urutan, notify. Normal 'pending' tetap ke waiting_ketua. (2) createKetuaSwapRequest — insert dengan status: 'ketua_pending', validasi kedua anggota, cek tidak ada active swap antar keduanya.
+- mobile/src/api/swaps.ts: Swap.status tambah 'ketua_pending'. requestAsKetua() pakai field member_a_id/member_b_id.
+- mobile/src/screens/swaps/SwapInboxScreen.tsx: filter incoming swaps sekarang include 'ketua_pending'. Badge "Dari Ketua" muncul pada ketua-initiated swaps.
+- TypeScript: 0 errors backend + mobile.
+
+[MO-13 · 2026-06-01 — Undian Flow Fix: All 3 Modes (COMPLETE)]
+- UndianScreen.tsx: Major refactor — 3 mode undian sekarang punya flow yang benar.
+  - Mode 1 (fixed): undian hanya bisa dilakukan SATU KALI per periode. Setelah ada winner untuk periodNumber, tampil "Undian sudah selesai" view + tombol Mulai Undian hilang.
+  - Mode 2 (random): sama dengan Mode 1 + polling live untuk anggota (setInterval 3 detik) — "Menunggu ketua memulai undian..." pill muncul untuk anggota. Henti poll otomatis setelah winner terdeteksi.
+  - Mode 3 (manual): UI sekarang drag-drop semua anggota (DraggableFlatList) → "Simpan Urutan Pemenang" → calls setSlotOrder() → locked view "Urutan sudah dikunci". Sebelumnya broken (UI sama dengan Mode 2, winner_id tidak dikirim ke backend).
+- UndianScreen.tsx: broadcast ke chat grup (fire-and-forget sendMessage) setelah undian selesai (Mode 1/2) dan setelah simpan urutan (Mode 3).
+- DetailGrupScreen.tsx: undian button sekarang disabled setelah undian dilakukan (currentPeriodUndianDone) atau setelah Mode 3 order disimpan (allHaveSlotOrder).
+- DetailGrupScreen.tsx: Tukar button disabled sampai ada pemenang pertama (hasAnyWinner) atau Mode 3 order tersimpan (allHaveSlotOrder). Alert jika diklik sebelum waktunya.
+- DetailGrupScreen.tsx: Mode 2 — hint kuning muncul jika undian belum bisa karena periode sebelumnya belum closed atau tanggal pelaksanaan belum tiba.
+- DetailGrupScreen.tsx: Mode 2 — prompt khusus untuk pemenang (isWinner) agar set tanggal arisan setelah menang. Pemenang bisa buka modal setTanggalPelaksanaan langsung dari banner. (Backend: perlu allow non-ketua set tanggal).
+- DetailGrupScreen.tsx: Mode 2 + isKetua — tombol "Tukar Giliran (Ketua)" di ketua actions → SwapByKetuaScreen. Tampil hanya setelah ada pemenang pertama.
+- DetailGrupScreen.tsx: state baru: hasAnyWinner, currentPeriodUndianDone, currentWinnerId, currentExecutionDate, prevPeriodClosed, allHaveSlotOrder, undianMode2Blocked.
+- payments.ts: Period interface + RawPeriod tambah execution_date / tanggal_pelaksanaan field.
+- InviteScreen.tsx: tambah polling drawMode, currentPeriodId, groupActive. Saat grup jadi active + Mode 2 → banner "Grup siap! Mulai Undian Pertama" dengan tombol navigasi ke UndianPre.
+- swaps.ts: tambah requestAsKetua() → POST /api/swaps/ketua (backend belum ada, perlu diimplementasikan di arisan-api).
+- SwapByKetuaScreen.tsx: screen baru — ketua pilih 2 anggota untuk ditukar giliran. Pre-fill Anggota A dengan pemenang undian jika ada.
+- navigation/types.ts: tambah SwapByKetua route.
+- AppNavigator.tsx: register SwapByKetuaScreen.
+- TypeScript: 0 errors. Tidak ada dependency baru.
+- Backend changes dibutuhkan:
+  1. setTanggalPelaksanaan: allow non-ketua (pemenang) set tanggal_pelaksanaan periode.
+  2. POST /api/swaps/ketua: endpoint baru untuk ketua inisiatif swap antar dua anggota.
+
+[MO-12 · 2026-06-01 — Gap Resolution PRD v1.3 (COMPLETE)]
+- OTPVerifyScreen: failCount state — support link WA hanya muncul setelah ≥3× gagal.
+- groups.ts + RequestSwapScreen: swap_count / jumlah_tukar — UI tampilkan sisa batas tukar + disable jika limit tercapai.
+- Backend arisan-api GET /api/groups/:id: tambah jumlah_tukar ke query group_members.
+- Backend POST /api/groups/:groupId/messages: fire-and-forget Expo push notif ke semua anggota lain saat pesan baru.
+- Backend GET+POST /api/groups/:groupId/typing: endpoint typing indicator in-memory TTL 5 detik.
+- ChatScreen: poll getTyping tiap 3 detik + debounce sendTyping 500ms + tampilkan "[Nama] sedang mengetik..." di atas input.
+- Firebase Crashlytics: @react-native-firebase/app + crashlytics terinstall. app.json googleServicesFile dikonfigurasi. google-services.json template dibuat. App.tsx init via try/require (aman sebelum prebuild). Developer perlu download google-services.json asli dari Firebase Console.
+- Cron notifikasi: GitHub Actions cron-notif.yml sudah ada di arisan-api (08:00 WIB, payment + pelaksanaan reminder).
+- GAP-REPORT-PRD-v1.3.md: status ~98%. Satu langkah manual tersisa: isi google-services.json asli.
+- TypeScript: 0 errors mobile + backend. Dependencies baru: @react-native-firebase/app, @react-native-firebase/crashlytics.
+
 [DESIGN-SYNC · 2026-05-31]
 - Audit menyeluruh semua 20+ screen vs design files di .claude/designs/. Mayoritas sudah match.
 - DetailGrupScreen: FIXED — status hero card sekarang menampilkan winner name (dari undianApi.getHistory), due date aktual (dari getPeriods), dan progress bar paidCount/memberCount aktual. Member grid sekarang menampilkan payment status nyata (lunas/belum/terlambat) dari getPayments — sebelumnya selalu hardcoded "belum".

@@ -8,6 +8,7 @@ import {
   RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useFocusEffect } from '@react-navigation/native';
 import { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
 import { CompositeScreenProps } from '@react-navigation/native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -43,7 +44,9 @@ import { OfflineBanner } from '../../components/OfflineBanner';
 import { SkeletonBar } from '../../components/ui/SkeletonBar';
 import { useAuth } from '../../hooks/useAuth';
 import { useNetworkStatus } from '../../hooks/useNetworkStatus';
-import { getMyGroups, Group } from '../../api/groups';
+import { getMyGroups, getGroupDetail, Group } from '../../api/groups';
+import { getPayments } from '../../api/payments';
+import { getNotifications } from '../../api/notifications';
 import { cache, CACHE_KEYS } from '../../utils/cache';
 
 type Props = CompositeScreenProps<
@@ -52,12 +55,15 @@ type Props = CompositeScreenProps<
 >;
 
 export function HomeScreen({ navigation }: Props) {
-  const { token } = useAuth();
+  const { token, user } = useAuth();
   const isOnline = useNetworkStatus();
   const [groups, setGroups] = useState<Group[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const [unreadCount, setUnreadCount] = useState(0);
+  // null = belum tahu, true = sudah bayar, false = belum bayar
+  const [myUrgentPaid, setMyUrgentPaid] = useState<boolean | null>(null);
 
   const loadGroups = useCallback(async (isRefresh = false) => {
     try {
@@ -87,9 +93,36 @@ export function HomeScreen({ navigation }: Props) {
 
   useEffect(() => { loadGroups(); }, [loadGroups]);
 
+  // Reload groups whenever screen comes into focus (e.g. after creating/joining a group)
+  useFocusEffect(useCallback(() => { loadGroups(); }, [loadGroups]));
+
+  useEffect(() => {
+    if (!token || !isOnline) return;
+    getNotifications(token, 1).then((r) => setUnreadCount(r.unread_count)).catch(() => {});
+  }, [token, isOnline]);
+
+  // Cek apakah user sudah bayar untuk grup aktif pertama
+  const urgentGroupId = groups.find((g) => g.status === 'active')?.id ?? null;
+  useEffect(() => {
+    if (!token || !isOnline || !urgentGroupId || !user) {
+      setMyUrgentPaid(null);
+      return;
+    }
+    getGroupDetail(token, urgentGroupId)
+      .then((detail) => {
+        if (!detail.current_period_id) { setMyUrgentPaid(false); return; }
+        return getPayments(token, urgentGroupId, detail.current_period_id)
+          .then((payments) => {
+            const mine = payments.find((p) => p.user_id === user.id);
+            setMyUrgentPaid(mine?.status === 'confirmed');
+          });
+      })
+      .catch(() => setMyUrgentPaid(null));
+  }, [token, isOnline, urgentGroupId, user?.id]);
+
   const onRefresh = () => { setRefreshing(true); loadGroups(true); };
 
-  const urgentGroup = groups[0];
+  const urgentGroup = groups.find((g) => g.status === 'active') ?? null;
 
   if (loading) {
     return (
@@ -129,7 +162,7 @@ export function HomeScreen({ navigation }: Props) {
             style={styles.bellBtn}
           >
             <Icon name="bell" size={21} color={Colors.ink} />
-            <View style={styles.bellBadge} />
+            {unreadCount > 0 && <View style={styles.bellBadge} />}
           </TouchableOpacity>
         }
       />
@@ -155,12 +188,18 @@ export function HomeScreen({ navigation }: Props) {
                 <View style={styles.heroCircle1} />
                 <View style={styles.heroCircle2} />
                 <View style={styles.heroLabel}>
-                  <Icon name="clock" size={15} color="rgba(255,255,255,0.85)" />
-                  <Text style={styles.heroLabelText}>PERLU PERHATIAN</Text>
+                  <Icon
+                    name={myUrgentPaid ? 'check' : 'clock'}
+                    size={15}
+                    color="rgba(255,255,255,0.85)"
+                  />
+                  <Text style={styles.heroLabelText}>
+                    {myUrgentPaid ? 'SUDAH LUNAS' : 'SEDANG BERJALAN'}
+                  </Text>
                 </View>
-                <Text style={styles.heroTitle}>Bayar {urgentGroup.name}</Text>
+                <Text style={styles.heroTitle}>{urgentGroup.name}</Text>
                 <Text style={styles.heroSub}>
-                  Rp {urgentGroup.nominal.toLocaleString('id')} · jatuh tempo 2 hari lagi
+                  Rp {urgentGroup.nominal.toLocaleString('id')} · {urgentGroup.total_periods} periode
                 </Text>
                 <View style={styles.heroActions}>
                   <Btn
@@ -172,14 +211,17 @@ export function HomeScreen({ navigation }: Props) {
                   >
                     Lihat detail
                   </Btn>
-                  <Btn
-                    size="sm"
-                    variant="ghost"
-                    style={styles.paidBtn}
-                    textStyle={{ color: Colors.white, fontWeight: '600' }}
-                  >
-                    Sudah bayar
-                  </Btn>
+                  {!myUrgentPaid && (
+                    <Btn
+                      size="sm"
+                      variant="ghost"
+                      onPress={() => navigation.navigate('GroupDetail', { groupId: urgentGroup.id, groupName: urgentGroup.name })}
+                      style={styles.paidBtn}
+                      textStyle={{ color: Colors.white, fontWeight: '600' }}
+                    >
+                      Bayar sekarang
+                    </Btn>
+                  )}
                 </View>
               </View>
             )}

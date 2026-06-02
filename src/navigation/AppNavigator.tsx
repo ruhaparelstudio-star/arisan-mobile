@@ -29,8 +29,10 @@ import { RequestSwapScreen } from '../screens/swaps/RequestSwapScreen';
 import { SwapStatusScreen } from '../screens/swaps/SwapStatusScreen';
 import { SwapInboxScreen } from '../screens/swaps/SwapInboxScreen';
 import { SwapApprovalScreen } from '../screens/swaps/SwapApprovalScreen';
+import { SwapByKetuaScreen } from '../screens/swaps/SwapByKetuaScreen';
 import { ActivityLogScreen } from '../screens/chat/ActivityLogScreen';
 import { SetGiliranScreen } from '../screens/groups/SetGiliranScreen';
+import { BukuArisanScreen } from '../screens/groups/BukuArisanScreen';
 
 const Tab = createBottomTabNavigator<MainTabParamList>();
 const Stack = createNativeStackNavigator<AppStackParamList>();
@@ -104,6 +106,8 @@ export function AppNavigator() {
       <Stack.Screen name="SwapApproval" component={SwapApprovalScreen} />
       <Stack.Screen name="ActivityLog" component={ActivityLogScreen} />
       <Stack.Screen name="SetGiliran" component={SetGiliranScreen} />
+      <Stack.Screen name="SwapByKetua" component={SwapByKetuaScreen} />
+      <Stack.Screen name="BukuArisan" component={BukuArisanScreen} />
     </Stack.Navigator>
   );
 }

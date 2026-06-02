@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { View, Text, TextInput, StyleSheet, ViewStyle } from 'react-native';
+import React, { useRef, useState } from 'react';
+import { View, Text, TextInput, StyleSheet, ViewStyle, Pressable } from 'react-native';
 import { Colors } from '../../theme/colors';
 import { Fonts } from '../../theme/typography';
 import { Icon } from './Icon';
@@ -34,10 +34,12 @@ export function Field({
   editable = true,
 }: FieldProps) {
   const [focused, setFocused] = useState(false);
+  const inputRef = useRef<TextInput>(null);
   return (
     <View style={style}>
       {label && <Text style={styles.label}>{label}</Text>}
-      <View
+      <Pressable
+        onPress={() => inputRef.current?.focus()}
         style={[
           styles.input,
           { padding: big ? 14 : 12 },
@@ -49,6 +51,7 @@ export function Field({
           <Text style={[styles.prefix, { fontSize: big ? 18 : 15 }]}>{prefix}</Text>
         )}
         <TextInput
+          ref={inputRef}
           value={value}
           onChangeText={onChangeText}
           placeholder={placeholder}
@@ -61,7 +64,7 @@ export function Field({
           maxLength={maxLength}
           editable={editable}
         />
-      </View>
+      </Pressable>
     </View>
   );
 }

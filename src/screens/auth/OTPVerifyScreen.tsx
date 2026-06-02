@@ -47,6 +47,10 @@ function mapResendError(e: unknown): string {
   return 'Gagal kirim ulang kode.';
 }
 
+const MAX_FAILS_BEFORE_SUPPORT = 3;
+const SUPPORT_WA_NUM = process.env.EXPO_PUBLIC_SUPPORT_WA ?? '6281234567890';
+const SUPPORT_WA = `https://wa.me/${SUPPORT_WA_NUM}?text=Halo%2C+saya+butuh+bantuan+verifikasi+akun+Arisan+App.`;
+
 export function OTPVerifyScreen({ navigation, route }: Props) {
   const { phone } = route.params;
   const [otp, setOtp] = useState('');
@@ -54,6 +58,8 @@ export function OTPVerifyScreen({ navigation, route }: Props) {
   const [error, setError] = useState('');
   const [countdown, setCountdown] = useState(EXPIRY_SECONDS);
   const [resendCooldown, setResendCooldown] = useState(RESEND_SECONDS);
+  const [failCount, setFailCount] = useState(0);
+  const [resendSuccess, setResendSuccess] = useState(false);
 
   useEffect(() => {
     const t = setInterval(() => setCountdown((c) => Math.max(0, c - 1)), 1000);
@@ -85,6 +91,7 @@ export function OTPVerifyScreen({ navigation, route }: Props) {
     } catch (e) {
       setError(mapVerifyError(e));
       setOtp('');
+      setFailCount((c) => c + 1);
     } finally {
       setLoading(false);
     }
@@ -102,8 +109,11 @@ export function OTPVerifyScreen({ navigation, route }: Props) {
     try {
       await authApi.sendOTP(phone);
       setResendCooldown(RESEND_SECONDS);
+      setCountdown(EXPIRY_SECONDS);
       setError('');
       setOtp('');
+      setResendSuccess(true);
+      setTimeout(() => setResendSuccess(false), 4000);
     } catch (e) {
       setError(mapResendError(e));
     }
@@ -123,11 +133,18 @@ export function OTPVerifyScreen({ navigation, route }: Props) {
             </Pill>
             <Text style={styles.h1}>Masukkan kode dari{'\n'}WhatsApp</Text>
             <Text style={styles.sub}>
-              Dikirim ke {phone} ·{' '}
+              OTP dikirim ke {phone}. Biasanya tiba dalam 30 detik.{' '}
               <Text style={styles.link} onPress={() => navigation.goBack()}>
-                ubah
+                Ubah nomor
               </Text>
             </Text>
+
+            {resendSuccess && (
+              <View style={styles.successBox}>
+                <Icon name="check" size={16} color={Colors.primaryInk} />
+                <Text style={styles.successText}>Kode baru dikirim! Biasanya tiba dalam 30 detik.</Text>
+              </View>
+            )}
 
             <View style={styles.otpWrap}>
               <OtpBoxes value={otp} onChange={setOtp} error={!!error} />
@@ -153,12 +170,26 @@ export function OTPVerifyScreen({ navigation, route }: Props) {
               )}
             </Text>
 
-            <View style={styles.infoBox}>
-              <Icon name="info" size={20} color={Colors.muted} />
-              <Text style={styles.infoText}>
-                Setelah 3× gagal, kamu bisa hubungi dukungan untuk verifikasi manual.
-              </Text>
-            </View>
+            {failCount >= MAX_FAILS_BEFORE_SUPPORT ? (
+              <View style={styles.supportBox}>
+                <Icon name="alert" size={20} color={Colors.danger} />
+                <View style={styles.flex}>
+                  <Text style={styles.supportText}>
+                    Sudah {failCount}× gagal. Butuh bantuan?{' '}
+                  </Text>
+                  <Text style={styles.supportLink} onPress={() => { const { Linking } = require('react-native'); Linking.openURL(SUPPORT_WA); }}>
+                    Hubungi dukungan via WhatsApp →
+                  </Text>
+                </View>
+              </View>
+            ) : (
+              <View style={styles.infoBox}>
+                <Icon name="info" size={20} color={Colors.muted} />
+                <Text style={styles.infoText}>
+                  Setelah {MAX_FAILS_BEFORE_SUPPORT}× gagal, kamu bisa hubungi dukungan untuk verifikasi manual.
+                </Text>
+              </View>
+            )}
 
             {countdown > 0 && (
               <Text style={styles.expiry}>Kode berlaku {formatTime(countdown)}</Text>
@@ -207,6 +238,23 @@ const styles = StyleSheet.create({
     marginTop: 12,
   },
   link: { fontFamily: Fonts.bodySemiBold, color: Colors.primaryInk, fontWeight: '600' },
+  successBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: Colors.primaryTint,
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    marginTop: 14,
+  },
+  successText: {
+    flex: 1,
+    fontFamily: Fonts.bodyRegular,
+    fontSize: 13,
+    color: Colors.primaryInk,
+    lineHeight: 18,
+  },
   otpWrap: { marginTop: 30 },
   errorRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 12 },
   errorText: {
@@ -241,6 +289,32 @@ const styles = StyleSheet.create({
     fontSize: 12.5,
     color: Colors.muted,
     lineHeight: 18,
+  },
+  supportBox: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 11,
+    borderWidth: 1,
+    borderColor: Colors.danger,
+    backgroundColor: Colors.dangerTint,
+    borderRadius: 16,
+    padding: 14,
+    marginTop: 18,
+  },
+  supportText: {
+    fontFamily: Fonts.bodyRegular,
+    fontSize: 12.5,
+    color: Colors.danger,
+    lineHeight: 18,
+  },
+  supportLink: {
+    fontFamily: Fonts.bodySemiBold,
+    fontSize: 12.5,
+    color: Colors.danger,
+    fontWeight: '600',
+    lineHeight: 18,
+    marginTop: 4,
+    textDecorationLine: 'underline',
   },
   expiry: {
     textAlign: 'center',

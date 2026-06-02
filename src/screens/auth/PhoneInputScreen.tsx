@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -35,6 +35,13 @@ export function PhoneInputScreen({ navigation }: Props) {
   const [phone, setPhone] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [cooldown, setCooldown] = useState(0);
+
+  useEffect(() => {
+    if (cooldown <= 0) return;
+    const t = setInterval(() => setCooldown((c) => Math.max(0, c - 1)), 1000);
+    return () => clearInterval(t);
+  }, [cooldown]);
 
   const formatted = phone.replace(/\D/g, '');
   const isValid = formatted.length >= 9 && formatted.length <= 13;
@@ -52,6 +59,7 @@ export function PhoneInputScreen({ navigation }: Props) {
       navigation.navigate('OTPVerify', { phone: fullPhone });
     } catch (e) {
       setError(mapSendOtpError(e));
+      setCooldown(30);
     } finally {
       setLoading(false);
     }
@@ -109,10 +117,10 @@ export function PhoneInputScreen({ navigation }: Props) {
               size="lg"
               onPress={handleSend}
               loading={loading}
-              disabled={!isValid || loading}
+              disabled={!isValid || loading || cooldown > 0}
               style={styles.cta}
             >
-              Kirim Kode
+              {cooldown > 0 ? `Coba lagi dalam ${cooldown} detik` : 'Kirim Kode'}
             </Btn>
             <Text style={styles.terms}>
               Lanjut berarti setuju{' '}

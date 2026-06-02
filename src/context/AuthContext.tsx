@@ -1,5 +1,6 @@
 import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import { storage, AUTH_TOKEN_KEY, AUTH_USER_KEY } from '../utils/storage';
+import { getMe } from '../api/auth';
 
 export interface AuthUser {
   id: string;
@@ -29,8 +30,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const t = await storage.get(AUTH_TOKEN_KEY);
         const u = await storage.get(AUTH_USER_KEY);
         if (t && u) {
-          setToken(t);
-          setUser(JSON.parse(u));
+          // Validasi token ke server — jika expired/invalid, paksa logout
+          try {
+            const freshUser = await getMe(t);
+            // Token valid: update data user terbaru dari server
+            const merged: AuthUser = { ...JSON.parse(u), ...freshUser };
+            await storage.set(AUTH_USER_KEY, JSON.stringify(merged));
+            setToken(t);
+            setUser(merged);
+          } catch {
+            // Token tidak valid atau server tidak bisa dijangkau — hapus sesi lama
+            await storage.delete(AUTH_TOKEN_KEY);
+            await storage.delete(AUTH_USER_KEY);
+          }
           return;
         }
         // Test Lab bypass: auto-login with pre-seeded JWT (build-time env var)

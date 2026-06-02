@@ -27,14 +27,14 @@ SplashScreen.preventAutoHideAsync();
 // Di Expo Go / development build tanpa native modules, blok ini di-skip secara aman.
 try {
   // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const { getCrashlytics, setCrashlyticsCollectionEnabled, recordError } = require('@react-native-firebase/crashlytics');
-  const cl = getCrashlytics();
-  setCrashlyticsCollectionEnabled(cl, true);
+  const crashlytics = require('@react-native-firebase/crashlytics').default;
+  const cl = crashlytics();
+  cl.setCrashlyticsCollectionEnabled(true);
 
   // Tangkap uncaught JS errors dan kirim ke Crashlytics sebelum crash handler default
   const prevHandler = ErrorUtils.getGlobalHandler();
   ErrorUtils.setGlobalHandler((error: Error, isFatal?: boolean) => {
-    recordError(cl, error);
+    cl.recordError(error);
     prevHandler(error, isFatal);
   });
 } catch {

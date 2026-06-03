@@ -12,7 +12,7 @@ require('dotenv').config({
 module.exports = {
   expo: {
     name: IS_PROD ? 'Arisan' : 'Arisan (Dev)',
-    slug: 'arisanappios',
+    slug: 'arisanapppro',
     owner: 'arsdevdev123',
     version: '1.0.3',
     orientation: 'portrait',
@@ -43,7 +43,7 @@ module.exports = {
     extra: {
       appEnv: APP_ENV,
       eas: {
-        projectId: '9da82ece-f08d-4bd6-aee0-52cb3a116600',
+        projectId: '397d607e-0b51-400f-a968-a4eeb8b003ac',
       },
     },
     plugins: [

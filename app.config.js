@@ -37,7 +37,7 @@ module.exports = {
         backgroundColor: '#00C897',
       },
       package: 'com.ruhaparelstudio.arisan',
-      googleServicesFile: './google-services.json',
+      googleServicesFile: process.env.GOOGLE_SERVICES_JSON ?? './google-services.json',
       versionCode: 4,
     },
     extra: {

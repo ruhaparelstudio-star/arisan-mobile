@@ -268,6 +268,23 @@ export function startArisan(token: string, groupId: string): Promise<{ message: 
   return apiCall(`/api/groups/${groupId}/start`, { method: 'POST', token });
 }
 
+export function closePeriod(
+  token: string,
+  groupId: string,
+  periodId: string
+): Promise<{
+  message: string;
+  closed_period: number;
+  next_period: number | null;
+  group_completed: boolean;
+  unpaid_count: number;
+}> {
+  return apiCall(`/api/groups/${groupId}/periods/${periodId}/close`, {
+    method: 'POST',
+    token,
+  });
+}
+
 export function setTanggalPelaksanaan(
   token: string,
   groupId: string,

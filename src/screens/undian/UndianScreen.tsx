@@ -222,6 +222,44 @@ export function UndianScreen({ navigation, route }: Props) {
     }
   };
 
+  // --- Konfirmasi dan catat pemenang Mode 3 untuk periode saat ini ---
+  const confirmManualWinner = useCallback(async (membersOrdered: { id: string; name: string }[]) => {
+    if (!isOnline || !token || !periodId) return;
+    const winnerMember = membersOrdered[periodNumber - 1];
+    if (!winnerMember) return;
+
+    Alert.alert(
+      `Konfirmasi Pemenang Periode ${periodNumber}`,
+      `Berdasarkan urutan yang tersimpan, pemenang periode ${periodNumber} adalah:\n\n${winnerMember.name}\n\nKonfirmasi?`,
+      [
+        { text: 'Batal', style: 'cancel' },
+        {
+          text: 'Konfirmasi',
+          onPress: async () => {
+            if (!token) return;
+            setRunning(true);
+            try {
+              const result = await undianApi.start(groupId, 'manual', periodId, winnerMember.id, token);
+              const broadcastMsg = `🎉 Pemenang periode ${result.periode_ke} (urutan offline): *${winnerMember.name}*. Selamat! 🏆`;
+              try { await sendMessage(token, groupId, broadcastMsg); } catch { /* broadcast gagal */ }
+              navigation.replace('UndianResult', {
+                groupId,
+                periodId,
+                winnerName: winnerMember.name,
+                winnerAmount: 0,
+                periodeKe: result.periode_ke,
+                ketuaId,
+              });
+            } catch (e: any) {
+              Alert.alert('Gagal', e.message ?? 'Gagal mencatat pemenang. Coba lagi.');
+              setRunning(false);
+            }
+          },
+        },
+      ]
+    );
+  }, [groupId, periodId, periodNumber, isOnline, token, ketuaId, navigation]);
+
   // --- Handle simpan urutan (Mode 3) ---
   const handleSaveManualOrder = async () => {
     if (!isOnline || !token) return;
@@ -232,6 +270,8 @@ export function UndianScreen({ navigation, route }: Props) {
       const orderText = manualMembers.map((m, i) => `${i + 1}. ${m.name}`).join(', ');
       try { await sendMessage(token, groupId, `📋 Ketua telah mengunci urutan undian: ${orderText}`); } catch { /* broadcast gagal */ }
       await load();
+      // Setelah simpan, langsung konfirmasi pemenang periode ini
+      await confirmManualWinner(manualMembers);
     } catch (e: any) {
       Alert.alert('Gagal Menyimpan', e.message ?? 'Gagal menyimpan urutan. Coba lagi.');
     } finally {
@@ -341,6 +381,9 @@ export function UndianScreen({ navigation, route }: Props) {
 
   // --- Mode 3: Urutan sudah disimpan ---
   if (drawMode === 'manual' && manualOrderSaved) {
+    const periodWinnerMember = manualMembers[periodNumber - 1];
+    const canConfirmWinner = isKetua && !undianAlreadyDone && !!periodWinnerMember && isOnline && !!periodId;
+
     return (
       <SafeAreaView edges={['top']} style={styles.safe}>
         <AppBar title="Undian Offline" onBack={() => navigation.goBack()} />
@@ -349,23 +392,55 @@ export function UndianScreen({ navigation, route }: Props) {
             <Icon name="checkCircle" size={36} color={Colors.primary} />
             <Text style={styles.doneTitle}>Urutan undian sudah dikunci</Text>
             <Text style={styles.doneSub}>
-              Urutan pemenang telah disimpan dan tidak bisa diubah. Setiap periode, pemenang ditentukan sesuai urutan ini.
+              {undianAlreadyDone
+                ? `Pemenang periode ${periodNumber} sudah dicatat. Tutup periode ini dari halaman Detail Grup setelah semua anggota bayar.`
+                : `Urutan tersimpan. Konfirmasi pemenang periode ${periodNumber} untuk melanjutkan.`}
             </Text>
           </View>
+
+          {/* Tombol konfirmasi pemenang periode ini — untuk ketua sebelum undian dicatat */}
+          {canConfirmWinner && (
+            <View style={styles.infoBox}>
+              <Icon name="trophy" size={20} color={Colors.primaryInk} />
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.infoText, { fontWeight: '600' }]}>
+                  Pemenang periode {periodNumber}: {periodWinnerMember.name}
+                </Text>
+                <Text style={[styles.infoText, { marginTop: 4 }]}>
+                  Konfirmasi untuk mencatat pemenang ini secara resmi.
+                </Text>
+              </View>
+            </View>
+          )}
+          {canConfirmWinner && (
+            <Btn
+              full size="lg" icon="trophy"
+              onPress={() => confirmManualWinner(manualMembers)}
+              style={styles.cta}
+              disabled={!isOnline}
+            >
+              Konfirmasi Pemenang Periode {periodNumber}
+            </Btn>
+          )}
+
           <Card style={styles.candidatesCard}>
             <SectionLabel>Urutan pemenang · {manualMembers.length} anggota</SectionLabel>
-            {manualMembers.map((c) => (
-              <View key={c.id} style={[styles.fixedRow, c.hasWon && styles.fixedRowDone]}>
-                <View style={[styles.slotBadge, c.hasWon && styles.slotBadgeDone]}>
-                  <Text style={styles.slotNum}>{c.slotOrder ?? '—'}</Text>
+            {manualMembers.map((c) => {
+              const isCurrent = c.slotOrder === periodNumber;
+              return (
+                <View key={c.id} style={[styles.fixedRow, c.hasWon && !isCurrent && styles.fixedRowDone, isCurrent && styles.fixedRowCurrent]}>
+                  <View style={[styles.slotBadge, c.hasWon && styles.slotBadgeDone, isCurrent && styles.slotBadgeCurrent]}>
+                    <Text style={[styles.slotNum, isCurrent && styles.slotNumCurrent]}>{c.slotOrder ?? '—'}</Text>
+                  </View>
+                  <Avatar name={c.name} size={36} />
+                  <Text style={[styles.fixedName, c.hasWon && !isCurrent && styles.fixedNameDone]} numberOfLines={1}>
+                    {c.name}
+                  </Text>
+                  {isCurrent && !c.hasWon && <Pill tone="solid">Periode ini</Pill>}
+                  {c.hasWon && <Icon name="checkCircle" size={18} color={Colors.primary} />}
                 </View>
-                <Avatar name={c.name} size={36} />
-                <Text style={[styles.fixedName, c.hasWon && styles.fixedNameDone]} numberOfLines={1}>
-                  {c.name}
-                </Text>
-                {c.hasWon && <Icon name="checkCircle" size={18} color={Colors.primary} />}
-              </View>
-            ))}
+              );
+            })}
           </Card>
         </ScrollView>
       </SafeAreaView>

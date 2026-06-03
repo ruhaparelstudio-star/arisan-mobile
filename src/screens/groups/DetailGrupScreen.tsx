@@ -20,7 +20,7 @@ import { OfflineBanner } from '../../components/OfflineBanner';
 import { SkeletonBar } from '../../components/ui/SkeletonBar';
 import { useAuth } from '../../hooks/useAuth';
 import { useNetworkStatus } from '../../hooks/useNetworkStatus';
-import { getGroupDetail, GroupDetail, generateInvite, leaveGroup, disbandGroup, setTanggalPelaksanaan, kickMember, startArisan } from '../../api/groups';
+import { getGroupDetail, GroupDetail, generateInvite, leaveGroup, disbandGroup, setTanggalPelaksanaan, kickMember, startArisan, closePeriod } from '../../api/groups';
 import { getActivityLog, ActivityLogEntry } from '../../api/chat';
 import { getPayments, getPeriods, Payment } from '../../api/payments';
 import { undianApi } from '../../api/undian';
@@ -277,6 +277,51 @@ export function DetailGrupScreen({ navigation, route }: Props) {
               load();
             } catch (e: any) {
               Alert.alert('Gagal', e.message ?? 'Gagal mengeluarkan anggota.');
+            } finally {
+              setActionLoading(false);
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const handleClosePeriod = () => {
+    if (!group?.current_period_id) return;
+    const periodNum = group.current_period ?? 1;
+    const totalPeriods = group.total_periods ?? 1;
+    const isLast = periodNum >= totalPeriods;
+
+    Alert.alert(
+      isLast ? 'Akhiri Arisan' : `Tutup Periode ${periodNum}`,
+      isLast
+        ? `Ini adalah periode terakhir. Menutup periode ini akan mengakhiri arisan "${group.name ?? groupName}" secara permanen.`
+        : `Tutup periode ${periodNum} dan buka periode ${periodNum + 1}? Pastikan semua bayar dan undian sudah dilakukan.`,
+      [
+        { text: 'Batal', style: 'cancel' },
+        {
+          text: isLast ? 'Akhiri' : 'Tutup Periode',
+          style: 'destructive',
+          onPress: async () => {
+            if (!token || !group?.current_period_id) return;
+            setActionLoading(true);
+            try {
+              const result = await closePeriod(token, groupId, group.current_period_id);
+              if (result.unpaid_count > 0) {
+                Alert.alert(
+                  'Periode Ditutup',
+                  `${result.message}\n\nCatatan: ${result.unpaid_count} anggota belum konfirmasi bayar.`,
+                );
+              } else {
+                Alert.alert('Berhasil', result.message);
+              }
+              if (result.group_completed) {
+                navigation.reset({ index: 0, routes: [{ name: 'Main' }] });
+              } else {
+                await load();
+              }
+            } catch (e: any) {
+              Alert.alert('Gagal', e.message ?? 'Gagal menutup periode. Coba lagi.');
             } finally {
               setActionLoading(false);
             }
@@ -661,6 +706,28 @@ export function DetailGrupScreen({ navigation, route }: Props) {
               <Text style={styles.ketuaRowLabel}>Approval Tukar Giliran</Text>
               <Icon name="chevronRight" size={16} color={Colors.muted} strokeWidth={2} />
             </TouchableOpacity>
+
+            {/* Tutup Periode — hanya saat active dan undian sudah selesai */}
+            {group?.status === 'active' && group?.current_period_id && currentPeriodUndianDone && (
+              <>
+                <View style={styles.ketuaRowDivider} />
+                <TouchableOpacity
+                  style={[styles.ketuaRow, (!isOnline || actionLoading) && styles.ketuaRowDisabled]}
+                  onPress={handleClosePeriod}
+                  disabled={!isOnline || actionLoading}
+                >
+                  <View style={[styles.ketuaRowIcon, { backgroundColor: '#EAF2FF' }]}>
+                    <Icon name="checkCircle" size={18} color="#2D6FD6" strokeWidth={2} />
+                  </View>
+                  <Text style={[styles.ketuaRowLabel, { color: '#2D6FD6', fontWeight: 'bold' }]}>
+                    {(group.current_period ?? 1) >= group.total_periods
+                      ? 'Akhiri Arisan'
+                      : `Tutup Periode ${group.current_period ?? 1} & Mulai Berikutnya`}
+                  </Text>
+                  <Icon name="chevronRight" size={16} color="#2D6FD6" strokeWidth={2} />
+                </TouchableOpacity>
+              </>
+            )}
 
             {/* Mulai Arisan — hanya saat masih recruiting */}
             {group?.status === 'recruiting' && (

@@ -1,4 +1,5 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import {
   View,
   Text,
@@ -62,7 +63,7 @@ export function SwapApprovalScreen({ navigation, route }: Props) {
     }
   }, [token, groupId]);
 
-  useEffect(() => { load(); }, [load]);
+  useFocusEffect(useCallback(() => { load(); }, [load]));
 
   const handleDecide = (swap: Swap, decision: 'approved' | 'ketua_rejected') => {
     if (!isOnline) {

@@ -17,6 +17,7 @@ import { OfflineBanner } from '../../components/OfflineBanner';
 import { useNetworkStatus } from '../../hooks/useNetworkStatus';
 import { useAuth } from '../../hooks/useAuth';
 import { fetchMessages, sendMessage, subscribeMessages, sendTyping, getTyping, ChatMessage } from '../../api/chat';
+import { getGroupDetail } from '../../api/groups';
 import { useChatSound } from '../../hooks/useChatSound';
 
 type DateDivider = { type: 'date'; id: string; label: string };
@@ -95,7 +96,7 @@ export function ChatScreen({ navigation, route }: Props) {
   const [filter, setFilter] = useState('Semua');
   const [typingUsers, setTypingUsers] = useState<{ id: string; name: string }[]>([]);
 
-  // userNameCache: user_id → name (diisi dari initial load, dipakai untuk realtime events)
+  // userNameCache: user_id → name (di-seed sekali di mount, dipakai untuk realtime events)
   const userNameCache = useRef<Record<string, string>>({});
   const typingDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -103,16 +104,41 @@ export function ChatScreen({ navigation, route }: Props) {
 
   const flatRef = useRef<FlatList>(null);
 
+  // Seed name cache dari group detail — hanya sekali saat mount
+  useEffect(() => {
+    if (!token) return;
+    getGroupDetail(token, groupId)
+      .then((detail) => {
+        for (const m of detail.members) {
+          const name = m.user.name ?? m.user.phone;
+          if (m.user_id && name) userNameCache.current[m.user_id] = name;
+        }
+      })
+      .catch(() => {});
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // mount only — cache cukup fresh untuk sesi ini
+
   const loadMessages = useCallback(async () => {
     setLoading(true);
     try {
       const res = await fetchMessages(groupId, 30);
-      setMessages(res.messages);
-      setHasMore(res.has_more);
-      // Populate name cache dari initial load
+
+      // Override cache dengan nama dari pesan jika tersedia (lebih fresh)
       for (const m of res.messages) {
-        if (m.user_id && m.user_name) userNameCache.current[m.user_id] = m.user_name;
+        if (m.user_id && m.user_name && m.user_name !== 'Anggota') {
+          userNameCache.current[m.user_id] = m.user_name;
+        }
       }
+
+      // Enrich user_name dari cache untuk pesan yang mendapat fallback 'Anggota'
+      const enriched = res.messages.map((m) =>
+        m.user_name === 'Anggota' && userNameCache.current[m.user_id]
+          ? { ...m, user_name: userNameCache.current[m.user_id] }
+          : m,
+      );
+
+      setMessages(enriched);
+      setHasMore(res.has_more);
       setError(null);
     } catch {
       setError('Gagal memuat pesan. Coba lagi.');
@@ -127,11 +153,19 @@ export function ChatScreen({ navigation, route }: Props) {
     try {
       const oldest = messages[messages.length - 1].id;
       const res = await fetchMessages(groupId, 30, oldest);
-      // Populate cache dari older messages
+      // Populate cache, skip fallback 'Anggota'
       for (const m of res.messages) {
-        if (m.user_id && m.user_name) userNameCache.current[m.user_id] = m.user_name;
+        if (m.user_id && m.user_name && m.user_name !== 'Anggota') {
+          userNameCache.current[m.user_id] = m.user_name;
+        }
       }
-      setMessages((prev) => [...prev, ...res.messages]);
+      // Enrich older messages dari cache
+      const enriched = res.messages.map((m) =>
+        m.user_name === 'Anggota' && userNameCache.current[m.user_id]
+          ? { ...m, user_name: userNameCache.current[m.user_id] }
+          : m,
+      );
+      setMessages((prev) => [...prev, ...enriched]);
       setHasMore(res.has_more);
     } catch {
       // silently fail for pagination
@@ -144,7 +178,7 @@ export function ChatScreen({ navigation, route }: Props) {
     loadMessages();
   }, [loadMessages]);
 
-  // Poll typing indicator tiap 3 detik saat online
+  // Poll typing indicator tiap 8 detik saat online
   useEffect(() => {
     if (!isOnline || !token) return;
     const poll = setInterval(async () => {
@@ -338,9 +372,6 @@ export function ChatScreen({ navigation, route }: Props) {
           </View>
         )}
         <View style={styles.inputBar}>
-          <TouchableOpacity style={styles.attachBtn}>
-            <Icon name="plus" size={22} color={Colors.primaryInk} strokeWidth={2} />
-          </TouchableOpacity>
           <TextInput
             value={draft}
             onChangeText={handleDraftChange}
@@ -406,7 +437,6 @@ const styles = StyleSheet.create({
   typingBar: { paddingHorizontal: 16, paddingVertical: 4, backgroundColor: Colors.bg },
   typingText: { fontFamily: Fonts.bodyRegular, fontSize: 12, color: Colors.muted, fontStyle: 'italic' },
   inputBar: { flexShrink: 0, padding: 10, paddingHorizontal: 16, paddingBottom: 26, borderTopWidth: 1, borderTopColor: Colors.border, flexDirection: 'row', gap: 10, alignItems: 'center', backgroundColor: Colors.bg },
-  attachBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: Colors.surface, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
   input: { flex: 1, minHeight: 42, maxHeight: 100, borderRadius: 999, borderWidth: 1, borderColor: Colors.borderStrong, paddingHorizontal: 16, paddingVertical: 10, fontFamily: Fonts.bodyRegular, fontSize: 14, color: Colors.ink, backgroundColor: Colors.bg },
   sendBtn: { width: 42, height: 42, borderRadius: 21, backgroundColor: Colors.primary, alignItems: 'center', justifyContent: 'center', flexShrink: 0, shadowColor: Colors.primaryShadow, shadowOffset: { width: 0, height: 6 }, shadowOpacity: 1, shadowRadius: 10, elevation: 6 },
   sendBtnDisabled: { opacity: 0.45 },

@@ -15,6 +15,7 @@ interface RawWinner {
   user_id: string;
   created_at: string;
   period_id: string;
+  arisan_amount?: number;
   periods: { periode_ke: number } | null;
   users: { name: string | null; phone: string } | null;
 }
@@ -25,7 +26,7 @@ function adaptWinner(raw: RawWinner): Winner {
     user_id: raw.user_id,
     period_number: raw.periods?.periode_ke ?? 0,
     winner_name: raw.users?.name ?? raw.users?.phone ?? '',
-    arisan_amount: 0,
+    arisan_amount: raw.arisan_amount ?? 0,
     drawn_at: raw.created_at,
   };
 }

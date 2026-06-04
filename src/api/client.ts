@@ -1,5 +1,7 @@
 const API_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:3001';
 const TIMEOUT_MS = 15_000;
+const MAX_RETRIES = 2;
+const RETRY_DELAY_MS = [500, 1000];
 
 export class ApiError extends Error {
   constructor(
@@ -11,18 +13,22 @@ export class ApiError extends Error {
   }
 }
 
-export async function apiCall<T>(
-  path: string,
-  options?: RequestInit & { token?: string },
-): Promise<T> {
-  const { token, ...rest } = options ?? {};
+type AuthEventListener = () => void;
+let sessionExpiredListener: AuthEventListener | null = null;
 
+export function setSessionExpiredListener(fn: AuthEventListener | null) {
+  sessionExpiredListener = fn;
+}
+
+async function attemptFetch(
+  path: string,
+  options: RequestInit & { token?: string },
+): Promise<Response> {
+  const { token, ...rest } = options;
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
-
-  let res: Response;
   try {
-    res = await fetch(`${API_URL}${path}`, {
+    return await fetch(`${API_URL}${path}`, {
       ...rest,
       signal: controller.signal,
       headers: {
@@ -39,11 +45,47 @@ export async function apiCall<T>(
   } finally {
     clearTimeout(timer);
   }
+}
 
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({ error: 'Terjadi kesalahan. Coba lagi.' }));
-    const msg = typeof err.error === 'string' ? err.error : 'Request gagal';
-    throw new ApiError(res.status, msg);
+export async function apiCall<T>(
+  path: string,
+  options?: RequestInit & { token?: string },
+): Promise<T> {
+  const opts = options ?? {};
+  let lastError: ApiError | null = null;
+
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    if (attempt > 0) {
+      await new Promise((r) => setTimeout(r, RETRY_DELAY_MS[attempt - 1]));
+    }
+
+    let res: Response;
+    try {
+      res = await attemptFetch(path, opts);
+    } catch (e) {
+      lastError = e as ApiError;
+      // Retry hanya untuk network error (status 0), bukan 4xx/5xx
+      continue;
+    }
+
+    if (!res.ok) {
+      if ((res.status === 401 || res.status === 403) && sessionExpiredListener) {
+        sessionExpiredListener();
+      }
+      const err = await res.json().catch(() => ({ error: 'Terjadi kesalahan. Coba lagi.' }));
+      const msg = typeof err.error === 'string' ? err.error : 'Request gagal';
+      const apiErr = new ApiError(res.status, msg);
+
+      // Retry hanya untuk 5xx (server error), bukan 4xx (client error)
+      if (res.status >= 500 && attempt < MAX_RETRIES) {
+        lastError = apiErr;
+        continue;
+      }
+      throw apiErr;
+    }
+
+    return res.json();
   }
-  return res.json();
+
+  throw lastError ?? new ApiError(0, 'Tidak dapat terhubung ke server. Periksa jaringan kamu.');
 }

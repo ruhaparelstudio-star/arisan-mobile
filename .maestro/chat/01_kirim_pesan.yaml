@@ -1,0 +1,32 @@
+appId: com.ruhaparelstudio.arisan
+name: "Chat - Kirim Pesan di Grup"
+tags:
+  - chat
+---
+# Precondition: di DetailGrupScreen
+
+- tapOn: "Chat"
+- assertVisible: "Chat"
+- waitForAnimationToEnd
+
+# Kirim pesan
+- tapOn: "Ketik pesan..."
+  optional: true
+- tapOn: "pesan"
+  optional: true
+
+# Input pesan
+- inputText: "Selamat ya yang menang!"
+- tapOn: "Kirim"
+  optional: true
+
+# Cek pesan muncul
+- assertVisible: "Selamat ya yang menang!"
+
+- takeScreenshot: chat_pesan_terkirim
+
+# Filter tab Sistem
+- tapOn: "Sistem"
+- waitForAnimationToEnd
+
+- back

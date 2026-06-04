@@ -144,7 +144,7 @@ export function PaymentStatusScreen({ navigation, route }: Props) {
         await confirmPayment(token, groupId, periodId, modalPayment.user_id);
       }
       setModalPayment(null);
-      await fetchData(true);
+      await fetchData(false); // GAP-P1-2: false agar setError(null) dipanggil — reset error lama setelah action sukses
     } catch {
       // keep modal open, user can retry
     } finally {

@@ -1,0 +1,49 @@
+appId: com.ruhaparelstudio.arisan
+name: "Auth - Login User 2 (Anggota) via Test Bypass"
+tags:
+  - auth
+---
+# Phone test bypass: +6285600001001 → input "85600001001"
+# Masih startsWith('+628560000100') → OTP 123456
+
+- launchApp:
+    clearState: true
+
+- assertVisible: "Mulai"
+- tapOn:
+    id: "btn_mulai"
+
+- assertVisible: "Halo!"
+- tapOn:
+    id: "phone_input"
+- eraseText: 50
+- inputText: "85600001001"
+- tapOn:
+    id: "btn_kirim_kode"
+
+- waitForAnimationToEnd
+- tapOn:
+    id: "otp_input_0"
+- inputText: "1"
+- tapOn:
+    id: "otp_input_1"
+- inputText: "2"
+- tapOn:
+    id: "otp_input_2"
+- inputText: "3"
+- tapOn:
+    id: "otp_input_3"
+- inputText: "4"
+- tapOn:
+    id: "otp_input_4"
+- inputText: "5"
+- tapOn:
+    id: "otp_input_5"
+- inputText: "6"
+
+- waitForAnimationToEnd
+- assertVisible: "Login berhasil!"
+- tapOn: "Ke beranda"
+  optional: true
+- waitForAnimationToEnd
+- assertVisible: "Beranda"

@@ -41,6 +41,7 @@ export function BuatGrupStep1Screen({ navigation }: Props) {
               style={styles.field}
               big
               autoFocus
+              testID="input_nama_grup"
             />
             <View style={styles.hint}>
               <Icon name="info" size={18} color={Colors.muted} />

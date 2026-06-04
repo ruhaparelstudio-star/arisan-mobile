@@ -1,4 +1,5 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import {
   View,
   Text,
@@ -64,7 +65,7 @@ export function SwapInboxScreen({ navigation }: Props) {
     }
   }, [token, user?.id]);
 
-  useEffect(() => { load(); }, [load]);
+  useFocusEffect(useCallback(() => { load(); }, [load]));
 
   const handleRespond = (swap: Swap) => {
     if (!isOnline) {

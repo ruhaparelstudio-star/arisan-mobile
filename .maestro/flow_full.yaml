@@ -1,0 +1,15 @@
+appId: com.ruhaparelstudio.arisan
+name: "Full E2E - Complete Arisan Flow (User 1 → Grup → Payment → Undian)"
+tags:
+  - full
+---
+# Menjalankan semua flow secara berurutan (tanpa berpindah device)
+# Jalankan: maestro test .maestro/flow_full.yaml
+
+- runFlow: auth/01_login_u1.yaml
+- runFlow: groups/01_buat_grup.yaml
+- runFlow: groups/03_aktifkan_grup.yaml
+- runFlow: payment/01_konfirmasi_bayar.yaml
+- runFlow: undian/01_mulai_undian.yaml
+- runFlow: chat/01_kirim_pesan.yaml
+- runFlow: profile/01_lihat_profil.yaml

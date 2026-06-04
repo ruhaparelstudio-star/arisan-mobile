@@ -1,0 +1,30 @@
+appId: com.ruhaparelstudio.arisan
+name: "Undian - Mulai Undian Periode 1 (Mode Random)"
+tags:
+  - undian
+  - smoke
+---
+# Precondition: login sebagai Ketua, grup aktif, semua anggota sudah bayar
+
+- tapOn: "Undian"
+- assertVisible: "Undian Periode"
+
+# Pastikan tombol tersedia (ketua)
+- assertVisible: "Mulai Undian"
+- tapOn: "Mulai Undian"
+
+# Tunggu animasi undian selesai
+- waitForAnimationToEnd
+- extendedWaitUntil:
+    visible: "Selamat"
+    timeout: 30000
+
+- assertVisible: "Selamat"
+- takeScreenshot: undian_result
+
+# Ucapkan selamat di chat (opsional)
+- tapOn: "Ucapkan selamat di chat"
+  optional: true
+- waitForAnimationToEnd
+- back
+  optional: true

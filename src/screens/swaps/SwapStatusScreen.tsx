@@ -1,4 +1,5 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useState } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import { View, Text, StyleSheet, ScrollView, ActivityIndicator, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -31,8 +32,10 @@ function fmtDate(iso: string): string {
 function statusLabel(s: Swap['status']): string {
   switch (s) {
     case 'pending': return 'Menunggu Target';
+    case 'ketua_pending': return 'Dari Ketua — Menunggu Kamu';
     case 'waiting_ketua': return 'Menunggu Ketua';
     case 'approved': return 'Disetujui';
+    case 'target_accepted': return 'Target Menyetujui';
     case 'target_rejected': return 'Ditolak Target';
     case 'ketua_rejected': return 'Ditolak Ketua';
     default: return s;
@@ -42,7 +45,7 @@ function statusLabel(s: Swap['status']): string {
 function statusTone(s: Swap['status']): 'mint' | 'amber' | 'danger' | 'neutral' {
   if (s === 'approved') return 'mint';
   if (s === 'target_rejected' || s === 'ketua_rejected') return 'danger';
-  if (s === 'waiting_ketua') return 'amber';
+  if (s === 'waiting_ketua' || s === 'ketua_pending') return 'amber';
   return 'neutral';
 }
 
@@ -123,7 +126,8 @@ export function SwapStatusScreen({ navigation, route }: Props) {
     }
   }, [token, requestId]);
 
-  useEffect(() => { load(); }, [load]);
+  // useFocusEffect: status swap bisa berubah saat target/ketua merespons
+  useFocusEffect(useCallback(() => { load(); }, [load]));
 
   const requesterName = swap?.requester?.name ?? swap?.requester?.phone ?? 'Kamu';
   const targetName = swap?.target?.name ?? swap?.target?.phone ?? 'Target';

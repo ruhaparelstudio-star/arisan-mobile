@@ -1,0 +1,35 @@
+appId: com.ruhaparelstudio.arisan
+name: "Groups - Join Grup via Kode (User 2)"
+tags:
+  - groups
+---
+# Precondition: sudah login sebagai User 2, INVITE_CODE di-set dari flow sebelumnya
+# Env: INVITE_CODE (8 karakter alphanumeric)
+
+# ── Navigasi ke Join Grup ──
+- tapOn: "Grup"
+- tapOn: "Masuk Grup"
+
+# ── JoinGrupScreen - Input Kode ──
+- assertVisible: "Punya kode undangan?"
+
+# Input kode undangan karakter per karakter (alphanumeric OTP boxes)
+- script: |
+    const code = maestro.env.INVITE_CODE || '';
+    for (let i = 0; i < code.length; i++) {
+      maestro.tapOn({ id: `join_code_${i}` });
+      maestro.inputText(code[i]);
+    }
+
+- tapOn: "Cari Grup"
+
+# ── JoinConfirmScreen ──
+- assertVisible: "Arisan Test E2E"
+- tapOn: "Gabung Grup"
+
+- waitForAnimationToEnd
+- assertVisible: "Detail Grup"
+  optional: true
+- assertVisible: "Arisan Test E2E"
+
+- takeScreenshot: join_success

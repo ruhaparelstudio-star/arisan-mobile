@@ -13,6 +13,7 @@ import { Avatar } from '../../components/ui/Avatar';
 import { StateView } from '../../components/ui/StateView';
 import { useAuth } from '../../hooks/useAuth';
 import { undianApi, Winner } from '../../api/undian';
+import { getGroupDetail } from '../../api/groups';
 
 type Props = NativeStackScreenProps<AppStackParamList, 'RiwayatPemenang'>;
 
@@ -29,6 +30,7 @@ export function RiwayatPemenangScreen({ navigation, route }: Props) {
   const { token } = useAuth();
 
   const [winners, setWinners] = useState<Winner[]>([]);
+  const [arisanAmount, setArisanAmount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -38,9 +40,14 @@ export function RiwayatPemenangScreen({ navigation, route }: Props) {
     if (!isRefresh) setLoading(true);
     setError(null);
     try {
-      const res = await undianApi.getHistory(groupId, token);
+      const [res, group] = await Promise.all([
+        undianApi.getHistory(groupId, token),
+        getGroupDetail(token, groupId),
+      ]);
       const sorted = [...res.winners].sort((a, b) => b.period_number - a.period_number);
       setWinners(sorted);
+      // Hitung nominal × jumlah anggota sebagai fallback karena backend belum kirim arisan_amount
+      setArisanAmount(group.nominal * group.members.length);
     } catch (e: any) {
       setError(e.message ?? 'Gagal memuat riwayat pemenang. Coba lagi.');
     } finally {
@@ -117,9 +124,9 @@ export function RiwayatPemenangScreen({ navigation, route }: Props) {
                 <Text style={styles.name}>{w.winner_name}</Text>
                 <Text style={styles.date}>{formatDate(w.drawn_at)}</Text>
               </View>
-              {w.arisan_amount > 0 && (
+              {(w.arisan_amount > 0 || arisanAmount > 0) && (
                 <Pill tone="mint">
-                  Rp {(w.arisan_amount / 1_000_000).toFixed(0)}jt
+                  Rp {((w.arisan_amount > 0 ? w.arisan_amount : arisanAmount) / 1_000_000).toFixed(1).replace(/\.0$/, '')}jt
                 </Pill>
               )}
             </View>

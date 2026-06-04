@@ -26,7 +26,7 @@ function formatDate(iso: string): string {
 }
 
 export function UndianResultScreen({ navigation, route }: Props) {
-  const { groupId, winnerName, winnerAmount, periodeKe, ketuaId = '' } = route.params;
+  const { groupId, groupName = 'Grup', winnerName, winnerAmount, periodeKe, ketuaId = '' } = route.params;
   const { token } = useAuth();
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const scaleAnim = useRef(new Animated.Value(0.85)).current;
@@ -123,14 +123,14 @@ export function UndianResultScreen({ navigation, route }: Props) {
         <View>
           <Btn
             full size="lg" icon="message"
-            onPress={() => navigation.navigate('Chat', { groupId, groupName: 'Grup', memberCount: 0, ketuaId })}
+            onPress={() => navigation.navigate('Chat', { groupId, groupName, memberCount: 0, ketuaId })}
             style={styles.cta}
           >
             Ucapkan selamat di chat
           </Btn>
           <Btn
             full size="md" variant="outline" icon="trophy"
-            onPress={() => navigation.navigate('RiwayatPemenang', { groupId, groupName: 'Grup' })}
+            onPress={() => navigation.navigate('RiwayatPemenang', { groupId, groupName })}
             style={styles.ctaSecondary}
           >
             Lihat semua pemenang

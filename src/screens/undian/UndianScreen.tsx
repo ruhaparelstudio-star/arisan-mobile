@@ -52,6 +52,7 @@ export function UndianScreen({ navigation, route }: Props) {
   const [candidates, setCandidates] = useState<Candidate[]>([]);
   const [drawMode, setDrawMode] = useState<'fixed' | 'random' | 'manual'>('random');
   const [ketuaId, setKetuaId] = useState<string>('');
+  const [loadedGroupName, setLoadedGroupName] = useState<string>('');
   const [loadError, setLoadError] = useState<string | null>(null);
   const [loadingData, setLoadingData] = useState(true);
   const [running, setRunning] = useState(false);
@@ -84,6 +85,7 @@ export function UndianScreen({ navigation, route }: Props) {
       const mode = (group.draw_mode ?? 'random') as 'fixed' | 'random' | 'manual';
       setDrawMode(mode);
       setKetuaId(group.created_by ?? '');
+      setLoadedGroupName(group.name ?? '');
 
       // Cek apakah undian sudah dilakukan untuk periode ini (Mode 1 & 2)
       const periodWinner = historyRes.winners.find((w) => w.period_number === periodNumber);
@@ -156,7 +158,7 @@ export function UndianScreen({ navigation, route }: Props) {
     if (isKetua || loadingData || undianAlreadyDone) return;
     // Mulai poll setiap 3 detik untuk deteksi undian baru selesai
     setLiveWaiting(true);
-    livePollingRef.current = setInterval(() => { load(false); }, 8000);
+    livePollingRef.current = setInterval(() => { load(false); }, 8000); // poll 8 detik untuk deteksi undian selesai
     return () => {
       if (livePollingRef.current) clearInterval(livePollingRef.current);
       setLiveWaiting(false);
@@ -209,6 +211,7 @@ export function UndianScreen({ navigation, route }: Props) {
 
       navigation.replace('UndianResult', {
         groupId,
+        groupName: loadedGroupName,
         periodId,
         winnerName: result.winner.name,
         winnerAmount: 0,
@@ -244,6 +247,7 @@ export function UndianScreen({ navigation, route }: Props) {
               try { await sendMessage(token, groupId, broadcastMsg); } catch { /* broadcast gagal */ }
               navigation.replace('UndianResult', {
                 groupId,
+                groupName: loadedGroupName,
                 periodId,
                 winnerName: winnerMember.name,
                 winnerAmount: 0,
@@ -473,7 +477,7 @@ export function UndianScreen({ navigation, route }: Props) {
           </Card>
           <Btn
             full size="md" variant="outline" icon="trophy"
-            onPress={() => navigation.navigate('RiwayatPemenang', { groupId, groupName: 'Grup' })}
+            onPress={() => navigation.navigate('RiwayatPemenang', { groupId, groupName: loadedGroupName || groupId })}
             style={styles.cta}
           >
             Lihat Semua Pemenang

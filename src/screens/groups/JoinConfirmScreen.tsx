@@ -2,7 +2,9 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, ActivityIndicator, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { AppStackParamList } from '../../navigation/types';
+import { CompositeScreenProps } from '@react-navigation/native';
+import { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
+import { AppStackParamList, MainTabParamList } from '../../navigation/types';
 import { Colors } from '../../theme/colors';
 import { Fonts } from '../../theme/typography';
 import { AppBar } from '../../components/ui/AppBar';
@@ -13,7 +15,10 @@ import { ListRow } from '../../components/ui/ListRow';
 import { useAuth } from '../../hooks/useAuth';
 import { getGroupByCode, joinGroup, Group } from '../../api/groups';
 
-type Props = NativeStackScreenProps<AppStackParamList, 'JoinConfirm'>;
+type Props = CompositeScreenProps<
+  NativeStackScreenProps<AppStackParamList, 'JoinConfirm'>,
+  BottomTabScreenProps<MainTabParamList>
+>;
 
 export function JoinConfirmScreen({ navigation, route }: Props) {
   const { code } = route.params;
@@ -39,7 +44,7 @@ export function JoinConfirmScreen({ navigation, route }: Props) {
         'Kamu perlu mengisi nama sebelum bergabung ke grup arisan.',
         [
           { text: 'Batal', style: 'cancel' },
-          { text: 'Isi Nama', onPress: () => (navigation as any).navigate('Profil') },
+          { text: 'Isi Nama', onPress: () => navigation.navigate('Profil') },
         ],
       );
       return;
@@ -47,7 +52,7 @@ export function JoinConfirmScreen({ navigation, route }: Props) {
     setJoining(true);
     try {
       await joinGroup(token, code);
-      (navigation as any).navigate('GroupDetail', { groupId: group.id, groupName: group.name });
+      navigation.navigate('GroupDetail', { groupId: group.id, groupName: group.name });
     } catch (e: any) {
       setError(e.message ?? 'Gagal bergabung.');
     } finally {

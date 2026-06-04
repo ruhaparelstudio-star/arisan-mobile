@@ -16,6 +16,7 @@ import { Fonts } from '../../theme/typography';
 import { Btn } from '../../components/ui/Button';
 import { Avatar } from '../../components/ui/Avatar';
 import { Icon } from '../../components/ui/Icon';
+import { useAuth } from '../../hooks/useAuth';
 
 type Props = NativeStackScreenProps<AuthStackParamList, 'Splash'>;
 
@@ -28,6 +29,7 @@ const AVATARS = [
 ];
 
 export function SplashScreen({ navigation }: Props) {
+  const { sessionExpired } = useAuth();
   return (
     <SafeAreaView edges={['top']} style={styles.safe}>
       <View style={styles.skip}>
@@ -71,6 +73,16 @@ export function SplashScreen({ navigation }: Props) {
         </View>
 
         <View style={styles.flex} />
+
+        {/* GAP-P2-8: info jika sesi berakhir karena token expired */}
+        {sessionExpired && (
+          <View style={styles.sessionExpiredBanner}>
+            <Icon name="alert" size={15} color={Colors.amberInk} />
+            <Text style={styles.sessionExpiredText}>
+              Sesimu telah berakhir. Silakan login kembali.
+            </Text>
+          </View>
+        )}
 
         <Btn
           full
@@ -175,6 +187,8 @@ const styles = StyleSheet.create({
   dot: { width: 8, height: 6, borderRadius: 3, backgroundColor: Colors.borderStrong },
   dotActive: { width: 26, backgroundColor: Colors.primary },
   flex: { flex: 1 },
+  sessionExpiredBanner: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: Colors.amberTint, borderRadius: 10, padding: 12, marginBottom: 12 },
+  sessionExpiredText: { flex: 1, fontFamily: Fonts.bodyRegular, fontSize: 13, color: Colors.amberInk, lineHeight: 18 },
   cta: { marginTop: 24 },
   privacyNote: {
     fontFamily: Fonts.bodyRegular,

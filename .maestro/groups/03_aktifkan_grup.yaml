@@ -1,0 +1,26 @@
+appId: com.ruhaparelstudio.arisan
+name: "Groups - Aktifkan Grup (Mulai Arisan)"
+tags:
+  - groups
+---
+# Precondition: login sebagai User 1 (Ketua), grup "Arisan Test E2E" sudah ada dengan 2 anggota
+
+- tapOn: "Grup"
+- tapOn: "Arisan Test E2E"
+- assertVisible: "Detail Grup"
+
+# Scroll ke bawah untuk cari tombol ketua
+- scroll
+
+# Tap "Mulai Arisan" di ketua actions
+- tapOn: "Mulai Arisan"
+
+# Konfirmasi Alert
+- tapOn: "Mulai"
+
+- waitForAnimationToEnd
+- assertVisible: "Aktif"
+  optional: true
+- assertVisible: "Periode 1"
+
+- takeScreenshot: grup_aktif

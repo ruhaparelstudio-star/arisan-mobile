@@ -65,6 +65,12 @@ export function deleteAccount(token: string): Promise<{ message: string }> {
   return apiCall('/api/users/me', { method: 'DELETE', token });
 }
 
+export type RefreshResponse = VerifyOtpResponse;
+
+export function refreshToken(token: string): Promise<RefreshResponse> {
+  return apiCall('/api/auth/refresh', { method: 'POST', token });
+}
+
 export interface UserStats {
   group_count: number;
   total_iuran: number;

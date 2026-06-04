@@ -86,7 +86,7 @@ export function InviteScreen({ navigation, route }: Props) {
 
           <Card accent tint pad={22} style={styles.codeCard}>
             <Text style={styles.codeLabel}>KODE INVITE</Text>
-            <Text style={styles.code}>{inviteCode}</Text>
+            <Text style={styles.code} testID="invite_code">{inviteCode}</Text>
             <Text style={styles.codeExpiry}>Berlaku sampai grup penuh atau periode 1 dimulai</Text>
           </Card>
 

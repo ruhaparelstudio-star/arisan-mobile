@@ -10,7 +10,7 @@ interface GrupCardProps {
   members: number;
   nominal: string;
   periode: string;
-  due: number | 'paid';
+  due: number | 'paid' | null;
   role?: string;
   onPress?: () => void;
 }
@@ -50,6 +50,10 @@ export const GrupCard = React.memo(function GrupCard({
         {due === 'paid' ? (
           <Pill tone="mint" dot>
             Lunas
+          </Pill>
+        ) : due === null ? (
+          <Pill tone="neutral" dot>
+            Aktif
           </Pill>
         ) : (
           <Pill tone={due <= 3 ? 'amber' : 'neutral'} dot>

@@ -25,19 +25,18 @@ import { ListRow } from '../../components/ui/ListRow';
 import { Btn } from '../../components/ui/Button';
 import { useAuth } from '../../hooks/useAuth';
 import { updateMe, deleteAccount, getUserStats, UserStats } from '../../api/auth';
+import { SkeletonBar } from '../../components/ui/SkeletonBar';
 
 const PRIVACY_POLICY_URL = process.env.EXPO_PUBLIC_PRIVACY_POLICY_URL ?? '';
+const SUPPORT_WA = process.env.EXPO_PUBLIC_SUPPORT_WA ?? '';
 
 type Props = BottomTabScreenProps<MainTabParamList, 'Profil'>;
-
-function comingSoon() {
-  Alert.alert('Segera hadir', 'Fitur ini sedang dalam pengembangan.');
-}
 
 export function ProfileScreen({ navigation }: Props) {
   const { user, logout, token, updateUser } = useAuth();
 
   const [stats, setStats] = useState<UserStats | null>(null);
+  const [statsLoading, setStatsLoading] = useState(true);
   const [deletingAccount, setDeletingAccount] = useState(false);
 
   // Edit nama state
@@ -48,9 +47,11 @@ export function ProfileScreen({ navigation }: Props) {
 
   useEffect(() => {
     if (!token) return;
+    setStatsLoading(true);
     getUserStats(token)
       .then(setStats)
-      .catch(() => setStats({ group_count: 0, total_iuran: 0, win_count: 0 }));
+      .catch(() => setStats({ group_count: 0, total_iuran: 0, win_count: 0 }))
+      .finally(() => setStatsLoading(false));
   }, [token]);
 
   const openEditName = () => {
@@ -126,30 +127,27 @@ export function ProfileScreen({ navigation }: Props) {
   };
 
   const MENU = [
-    { icon: 'bank', title: 'Rekening bank', value: '', onPress: comingSoon },
-    { icon: 'bell', title: 'Pengaturan notifikasi', value: '', onPress: comingSoon },
-    { icon: 'lock', title: 'Keamanan & PIN', value: '', onPress: comingSoon },
-    { icon: 'activity', title: 'Riwayat semua arisan', value: (stats?.group_count ?? 0) > 0 ? `${stats!.group_count} grup` : '', onPress: comingSoon },
-    { icon: 'shield', title: 'Bantuan & dukungan', value: '', onPress: comingSoon },
+    {
+      icon: 'shield',
+      title: 'Bantuan & dukungan',
+      value: '',
+      onPress: () => SUPPORT_WA
+        ? Linking.openURL(`https://wa.me/${SUPPORT_WA}`)
+        : Alert.alert('Bantuan', 'Hubungi admin arisan kamu untuk bantuan.'),
+    },
     {
       icon: 'fileText',
       title: 'Kebijakan Privasi',
       value: '',
-      onPress: () => PRIVACY_POLICY_URL ? Linking.openURL(PRIVACY_POLICY_URL) : comingSoon(),
+      onPress: () => PRIVACY_POLICY_URL
+        ? Linking.openURL(PRIVACY_POLICY_URL)
+        : Alert.alert('Kebijakan Privasi', 'URL kebijakan privasi belum dikonfigurasi.'),
     },
   ];
 
   return (
     <SafeAreaView edges={['top']} style={styles.safe}>
-      <AppBar
-        large
-        title="Profil"
-        right={
-          <TouchableOpacity style={styles.settingsBtn} onPress={comingSoon}>
-            <Icon name="settings" size={21} color={Colors.ink} />
-          </TouchableOpacity>
-        }
-      />
+      <AppBar large title="Profil" />
       <ScrollView contentContainerStyle={styles.body}>
         {/* Profile row */}
         <View style={styles.profileRow}>
@@ -171,10 +169,17 @@ export function ProfileScreen({ navigation }: Props) {
         {/* Stats */}
         <Card tint pad={18} style={styles.statsCard}>
           <View style={styles.statsRow}>
-            {[
-              [stats != null ? String(stats.group_count) : '—', 'Grup'],
-              [stats != null ? `Rp ${stats.total_iuran.toLocaleString('id')}` : '—', 'Total iuran'],
-              [stats != null ? `${stats.win_count}×` : '—', 'Menang'],
+            {statsLoading ? (
+              [0, 1, 2].map((i) => (
+                <View key={i} style={styles.statItem}>
+                  <SkeletonBar width={44} height={26} borderRadius={8} style={{ marginBottom: 6 }} />
+                  <SkeletonBar width={52} height={11} borderRadius={4} />
+                </View>
+              ))
+            ) : [
+              [String(stats?.group_count ?? 0), 'Grup'],
+              [`Rp ${(stats?.total_iuran ?? 0).toLocaleString('id')}`, 'Total iuran'],
+              [`${stats?.win_count ?? 0}×`, 'Menang'],
             ].map(([n, l], i) => (
               <View key={i} style={styles.statItem}>
                 <Text style={styles.statNum}>{n}</Text>
@@ -263,7 +268,6 @@ export function ProfileScreen({ navigation }: Props) {
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: Colors.bg },
   body: { paddingHorizontal: 22, paddingBottom: 32 },
-  settingsBtn: { width: 42, height: 42, borderRadius: 13, backgroundColor: Colors.surface, alignItems: 'center', justifyContent: 'center' },
   profileRow: { flexDirection: 'row', alignItems: 'center', gap: 16, paddingVertical: 4, marginBottom: 8 },
   profileInfo: { flex: 1 },
   nameRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },

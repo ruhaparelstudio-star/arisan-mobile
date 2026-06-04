@@ -1,0 +1,38 @@
+appId: com.ruhaparelstudio.arisan
+name: "Payment - Konfirmasi Bayar Semua Anggota"
+tags:
+  - payment
+  - smoke
+---
+# Precondition: login sebagai User 1 (Ketua), grup aktif, di DetailGrupScreen
+
+- tapOn: "Bayar"
+- assertVisible: "Status Bayar"
+
+# ── PaymentStatusScreen ──
+- assertVisible: "Periode 1"
+- assertVisible: "0/2"
+  optional: true
+
+# Konfirmasi User 1
+- tapOn: "Belum"
+  index: 0
+- assertVisible: "Konfirmasi Lunas"
+  optional: true
+- tapOn: "Konfirmasi Lunas"
+
+- waitForAnimationToEnd
+- assertVisible: "Lunas"
+
+# Konfirmasi User 2
+- tapOn: "Belum"
+  index: 0
+  optional: true
+- tapOn: "Konfirmasi Lunas"
+  optional: true
+
+- waitForAnimationToEnd
+
+- takeScreenshot: payment_lunas
+- assertVisible: "2/2"
+  optional: true

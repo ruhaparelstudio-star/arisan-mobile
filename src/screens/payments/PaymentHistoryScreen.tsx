@@ -18,6 +18,7 @@ import { Card } from '../../components/ui/Card';
 import { Pill } from '../../components/ui/Pill';
 import { Icon } from '../../components/ui/Icon';
 import { useAuth } from '../../hooks/useAuth';
+import { useNetworkStatus } from '../../hooks/useNetworkStatus';
 import { getPayments, getPeriods, Payment, Period } from '../../api/payments';
 
 type Props = NativeStackScreenProps<AppStackParamList, 'PaymentHistory'>;
@@ -31,6 +32,7 @@ function fmtDue(iso: string): string {
 export function PaymentHistoryScreen({ navigation, route }: Props) {
   const { groupId, groupName } = route.params;
   const { token } = useAuth();
+  const isOnline = useNetworkStatus();
 
   const [periods, setPeriods] = useState<Period[]>([]);
   const [paymentsMap, setPaymentsMap] = useState<Record<string, Payment[]>>({});
@@ -41,6 +43,11 @@ export function PaymentHistoryScreen({ navigation, route }: Props) {
 
   const fetchPeriods = useCallback(async () => {
     if (!token) return;
+    if (!isOnline) {
+      setError('Butuh koneksi internet untuk memuat riwayat pembayaran.');
+      setLoading(false);
+      return;
+    }
     try {
       setError(null);
       const data = await getPeriods(token, groupId);
@@ -52,7 +59,7 @@ export function PaymentHistoryScreen({ navigation, route }: Props) {
     } finally {
       setLoading(false);
     }
-  }, [token, groupId]);
+  }, [token, groupId, isOnline]);
 
   useEffect(() => { fetchPeriods(); }, [fetchPeriods]);
 

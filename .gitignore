@@ -19,3 +19,6 @@ ios/
 google-services.json
 GoogleService-Info.plist
 *:Zone.Identifier
+system-review-skill.skill
+reverse-docs-skill.skill
+.claude/commands/reverse-docs.md

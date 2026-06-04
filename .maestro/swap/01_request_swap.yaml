@@ -1,0 +1,35 @@
+appId: com.ruhaparelstudio.arisan
+name: "Swap - Request Tukar Giliran (User 2)"
+tags:
+  - swap
+---
+# Precondition: login User 2, ada grup aktif dengan pemenang undian
+
+- tapOn: "Grup"
+- tapOn: "Arisan Test E2E"
+- assertVisible: "Detail Grup"
+
+- tapOn: "Tukar"
+# Pilih dari action sheet
+- tapOn: "Ajukan Tukar"
+  optional: true
+- tapOn: "Request Tukar"
+  optional: true
+
+- assertVisible: "Request Tukar"
+- waitForAnimationToEnd
+
+# Pilih anggota target (bukan diri sendiri)
+- tapOn: "8560000100"
+  optional: true
+- tapOn: "Anggota"
+  index: 0
+  optional: true
+- tapOn: "Pilih"
+  optional: true
+
+- tapOn: "Request Tukar"
+
+- waitForAnimationToEnd
+
+- takeScreenshot: swap_request_sent

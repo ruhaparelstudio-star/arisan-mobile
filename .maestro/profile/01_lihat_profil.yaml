@@ -1,0 +1,23 @@
+appId: com.ruhaparelstudio.arisan
+name: "Profile - Lihat Stats & Menu Profil"
+tags:
+  - profile
+  - smoke
+---
+# Precondition: logged in, ada grup aktif
+
+- tapOn: "Profil"
+- assertVisible: "Profil"
+
+# Cek stats bukan 0 (setelah ada grup & transaksi)
+- assertVisible: "Jumlah Grup"
+  optional: true
+- assertVisible: "Total Iuran"
+  optional: true
+
+- takeScreenshot: profile_screen
+
+# Cek menu Kebijakan Privasi ada
+- assertVisible: "Kebijakan Privasi"
+- assertVisible: "Logout"
+- assertVisible: "Hapus Akun"

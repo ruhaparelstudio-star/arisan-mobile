@@ -1,0 +1,27 @@
+appId: com.ruhaparelstudio.arisan
+name: "DEBUG - Screenshot only, no assertions"
+---
+# Flow tanpa assertion — hanya screenshot untuk debug
+# Lihat gambar di Maestro Cloud untuk tahu apa yang muncul di setiap langkah
+
+- launchApp:
+    clearState: true
+    clearKeychain: true
+- takeScreenshot: "00_launch"
+- waitForAnimationToEnd
+- takeScreenshot: "01_after_wait"
+
+# Tap "Mulai" jika ada
+- tapOn:
+    text: "Mulai"
+    optional: true
+- waitForAnimationToEnd
+- takeScreenshot: "02_after_tap_mulai"
+
+# Tunggu lagi
+- waitForAnimationToEnd
+- takeScreenshot: "03_after_second_wait"
+
+# Scroll untuk lihat semua konten
+- scroll
+- takeScreenshot: "04_after_scroll"

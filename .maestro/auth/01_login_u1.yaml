@@ -1,0 +1,58 @@
+appId: com.ruhaparelstudio.arisan
+name: "Auth - Login User 1 (Ketua) via Test Bypass"
+tags:
+  - auth
+  - smoke
+---
+# Phone test bypass: +628560000100 → input "8560000100"
+# OTP selalu 123456 saat ENABLE_TEST_BYPASS=true
+
+- launchApp:
+    clearState: true
+
+- assertVisible: "Mulai"
+- tapOn:
+    id: "btn_mulai"
+
+# ── PhoneInputScreen ──
+- assertVisible: "Halo!"
+- tapOn:
+    id: "phone_input"
+- eraseText: 50
+- inputText: "8560000100"
+- tapOn:
+    id: "btn_kirim_kode"
+
+# ── OTPVerifyScreen ──
+- assertVisible: "OTP dikirim"
+  optional: true
+- waitForAnimationToEnd
+- tapOn:
+    id: "otp_input_0"
+- inputText: "1"
+- tapOn:
+    id: "otp_input_1"
+- inputText: "2"
+- tapOn:
+    id: "otp_input_2"
+- inputText: "3"
+- tapOn:
+    id: "otp_input_3"
+- inputText: "4"
+- tapOn:
+    id: "otp_input_4"
+- inputText: "5"
+- tapOn:
+    id: "otp_input_5"
+- inputText: "6"
+
+# Auto-submit when 6 digits complete
+- waitForAnimationToEnd
+- assertVisible: "Login berhasil!"
+
+# ── LoginSuccessScreen → auto-navigate ke Home ──
+- tapOn: "Ke beranda"
+  optional: true
+- waitForAnimationToEnd
+
+- assertVisible: "Beranda"

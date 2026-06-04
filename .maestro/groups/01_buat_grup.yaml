@@ -1,0 +1,56 @@
+appId: com.ruhaparelstudio.arisan
+name: "Groups - Buat Grup Arisan (Mode Random, 2 Periode)"
+tags:
+  - groups
+  - smoke
+---
+# Precondition: sudah login sebagai User 1 (Ketua), berada di HomeScreen
+
+# ── Navigasi ke Buat Grup ──
+- tapOn: "Grup"
+- assertVisible: "Buat Grup"
+  optional: true
+
+# Ada 2 cara masuk BuatGrup: tombol "Buat Grup" atau FAB "+"
+- tapOn: "Buat Grup"
+
+# ── BuatGrupStep1 - Nama Grup ──
+- assertVisible: "Mau kasih nama apa"
+- tapOn:
+    id: "input_nama_grup"
+- clearText
+- inputText: "Arisan Test E2E"
+- tapOn: "Lanjut"
+
+# ── BuatGrupStep2 - Nominal & Frekuensi ──
+- assertVisible: "Berapa & seberapa"
+- tapOn: "200rb"
+- tapOn: "Bulanan"
+
+# Default periods = 12, kurangi ke 2 (tekan "−" 10x)
+- repeat:
+    times: 10
+    commands:
+      - tapOn:
+          id: "btn_period_dec"
+- assertVisible: "2"
+
+- tapOn: "Lanjut"
+
+# ── BuatGrupStep3 - Mode Undian ──
+- assertVisible: "Bagaimana giliran"
+- tapOn: "Undian per periode"
+- tapOn: "Buat & Invite Anggota"
+
+# ── InviteScreen ──
+- assertVisible: "Invite Anggota"
+- assertVisible:
+    id: "invite_code"
+
+# Simpan invite code ke environment variable untuk flow join
+- copyTextFrom:
+    id: "invite_code"
+- env:
+    INVITE_CODE: ${maestro.copiedText}
+
+- takeScreenshot: invite_screen

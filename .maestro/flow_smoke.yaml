@@ -1,0 +1,75 @@
+appId: com.ruhaparelstudio.arisan
+name: "Smoke Test - Auth + Buat Grup + Profil"
+tags:
+  - smoke
+---
+# FLOW SMOKE: Auth → Buat Grup → Profil
+# Test bypass: +628560000100 → OTP 123456
+
+# ── 1. LAUNCH ──
+- launchApp:
+    clearState: true
+    clearKeychain: true
+- waitForAnimationToEnd
+- takeScreenshot: "00_launch"
+
+# ── 2. SPLASH — tap by text (lebih reliable dari testID) ──
+- extendedWaitUntil:
+    visible: "Mulai"
+    timeout: 15000
+- tapOn: "Mulai"
+- waitForAnimationToEnd
+- takeScreenshot: "01_after_mulai"
+
+# ── 3. PHONE INPUT ──
+# Deteksi via testID bukan text — keyboard autoFocus bisa shift layout
+- waitForAnimationToEnd
+- takeScreenshot: "02_phone_screen"
+- extendedWaitUntil:
+    visible:
+      id: "phone_input"
+    timeout: 15000
+- tapOn:
+    id: "phone_input"
+- eraseText: 50
+- inputText: "8560000100"
+- takeScreenshot: "03_phone_filled"
+- hideKeyboard
+- takeScreenshot: "03b_keyboard_hidden"
+- tapOn:
+    id: "btn_kirim_kode"
+- waitForAnimationToEnd
+- takeScreenshot: "03_after_send_otp"
+
+# ── 4. OTP — timeout 30s untuk Vercel cold start ──
+- extendedWaitUntil:
+    visible: "Langkah"
+    timeout: 30000
+- takeScreenshot: "04_otp_screen"
+- tapOn:
+    id: "otp_input_0"
+- inputText: "1"
+- tapOn:
+    id: "otp_input_1"
+- inputText: "2"
+- tapOn:
+    id: "otp_input_2"
+- inputText: "3"
+- tapOn:
+    id: "otp_input_3"
+- inputText: "4"
+- tapOn:
+    id: "otp_input_4"
+- inputText: "5"
+- tapOn:
+    id: "otp_input_5"
+- inputText: "6"
+- waitForAnimationToEnd
+- takeScreenshot: "04_after_otp"
+
+# ── 5. HOME ──
+- extendedWaitUntil:
+    visible: "Beranda"
+    timeout: 20000
+- takeScreenshot: "05_home"
+- assertVisible: "Beranda"

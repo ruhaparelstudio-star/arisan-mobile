@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import { View, ScrollView, StyleSheet, TouchableOpacity, RefreshControl, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect, CompositeScreenProps } from '@react-navigation/native';
@@ -12,6 +12,7 @@ import { GrupCard } from '../../components/GrupCard';
 import { StateView } from '../../components/ui/StateView';
 import { Icon } from '../../components/ui/Icon';
 import { useAuth } from '../../hooks/useAuth';
+import { useNetworkStatus } from '../../hooks/useNetworkStatus';
 import { getMyGroups, getGroupDetail, Group, GroupDetail } from '../../api/groups';
 import { cache, CACHE_KEYS } from '../../utils/cache';
 
@@ -33,6 +34,7 @@ function formatNominal(n: number): string {
 
 export function GroupsScreen({ navigation }: Props) {
   const { token, user } = useAuth();
+  const isOnline = useNetworkStatus();
   const [groups, setGroups] = useState<RichGroup[]>([]);
   const [filter, setFilter] = useState('Semua');
   const [loading, setLoading] = useState(true);
@@ -40,25 +42,54 @@ export function GroupsScreen({ navigation }: Props) {
 
   const load = useCallback(async (isRefresh = false) => {
     if (!token) return;
+
+    // Offline: langsung ke cache tanpa tunggu 15s timeout
+    if (!isOnline) {
+      const cached = await cache.get<Group[]>(CACHE_KEYS.GROUPS_LIST);
+      if (cached) setGroups(cached.data.map((g) => ({ base: g, detail: null })));
+      setLoading(false);
+      if (isRefresh) setRefreshing(false);
+      return;
+    }
+
     try {
       const list = await getMyGroups(token);
       cache.set(CACHE_KEYS.GROUPS_LIST, list);
-      // Load details in parallel for member count and current period
-      const details = await Promise.all(
-        list.map((g) => getGroupDetail(token, g.id).catch(() => null)),
+
+      // Cache-first: baca detail dari cache dulu, fetch hanya yang stale/kosong
+      const cachedDetails = await Promise.all(
+        list.map((g) => cache.get<GroupDetail>(CACHE_KEYS.groupDetail(g.id))),
       );
-      setGroups(list.map((g, i) => ({ base: g, detail: details[i] })));
+
+      // Tampilkan data cache langsung agar UI responsif
+      setGroups(list.map((g, i) => ({ base: g, detail: cachedDetails[i]?.data ?? null })));
+      setLoading(false);
+      if (isRefresh) setRefreshing(false);
+
+      // Fetch hanya grup yang cache-nya stale atau kosong (background refresh)
+      const needsFresh = list.filter((_, i) => !cachedDetails[i] || cachedDetails[i]!.isStale);
+      if (needsFresh.length > 0) {
+        const freshDetails = await Promise.all(
+          needsFresh.map((g) => getGroupDetail(token, g.id).catch((err) => { console.warn('GroupsScreen: background detail refresh failed', g.id, err); return null; })),
+        );
+        setGroups((prev) => {
+          const next = [...prev];
+          needsFresh.forEach((g, idx) => {
+            const pos = list.findIndex((l) => l.id === g.id);
+            if (pos >= 0) next[pos] = { base: g, detail: freshDetails[idx] };
+          });
+          return next;
+        });
+      }
     } catch {
       const cached = await cache.get<Group[]>(CACHE_KEYS.GROUPS_LIST);
       if (cached) setGroups(cached.data.map((g) => ({ base: g, detail: null })));
-    } finally {
       setLoading(false);
       if (isRefresh) setRefreshing(false);
     }
-  }, [token]);
+  }, [token, isOnline]);
 
-  useEffect(() => { load(); }, [load]);
-
+  // NEW-P1-1: hanya useFocusEffect — cover initial mount + setiap kembali ke screen
   useFocusEffect(useCallback(() => { load(); }, [load]));
 
   const onRefresh = () => { setRefreshing(true); load(true); };
@@ -72,7 +103,7 @@ export function GroupsScreen({ navigation }: Props) {
         'Kamu perlu mengisi nama sebelum membuat atau bergabung ke grup arisan.',
         [
           { text: 'Batal', style: 'cancel' },
-          { text: 'Isi Nama', onPress: () => (navigation as any).navigate('Profil') },
+          { text: 'Isi Nama', onPress: () => navigation.navigate('Profil') },
         ],
       );
     }
@@ -135,7 +166,8 @@ export function GroupsScreen({ navigation }: Props) {
               ? `${g.total_periods} periode selesai`
               : 'Belum dimulai';
             const role = g.created_by === user?.id ? 'Ketua' : undefined;
-            const due: number | 'paid' = g.status === 'completed' ? 'paid' : 3;
+            // NEW-P2-1: due date aktual tidak tersedia di list — tampil null ("Aktif") bukan hardcoded H-3
+            const due: number | 'paid' | null = g.status === 'completed' ? 'paid' : null;
             return (
               <GrupCard
                 key={g.id}

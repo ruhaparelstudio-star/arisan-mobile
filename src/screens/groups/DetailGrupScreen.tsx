@@ -28,12 +28,19 @@ import { cache, CACHE_KEYS } from '../../utils/cache';
 
 type Props = NativeStackScreenProps<AppStackParamList, 'GroupDetail'>;
 
-const QUICK_ACTIONS = [
-  { icon: 'wallet', label: 'Bayar', primary: true, screen: 'Bayar' as const },
-  { icon: 'message', label: 'Chat', screen: 'Chat' as const },
-  { icon: 'swap', label: 'Tukar', screen: 'RequestSwap' as const },
-  { icon: 'sparkles', label: 'Undian', screen: 'UndianPre' as const },
-] as const;
+interface QuickAction {
+  icon: string;
+  label: string;
+  primary?: boolean;
+  screen: 'Bayar' | 'Chat' | 'RequestSwap' | 'UndianPre';
+}
+
+const QUICK_ACTIONS: QuickAction[] = [
+  { icon: 'wallet', label: 'Bayar', primary: true, screen: 'Bayar' },
+  { icon: 'message', label: 'Chat', screen: 'Chat' },
+  { icon: 'swap', label: 'Tukar', screen: 'RequestSwap' },
+  { icon: 'sparkles', label: 'Undian', screen: 'UndianPre' },
+];
 
 const TONE_BG: Record<string, string> = {
   mint: '#E6FAF5',
@@ -79,6 +86,10 @@ export function DetailGrupScreen({ navigation, route }: Props) {
   const [recentActivity, setRecentActivity] = useState<ActivityLogEntry[]>([]);
   const [showTanggalModal, setShowTanggalModal] = useState(false);
   const [tanggalInput, setTanggalInput] = useState('');
+  const today = new Date();
+  const [dateYear, setDateYear] = useState(today.getFullYear());
+  const [dateMonth, setDateMonth] = useState(today.getMonth() + 1);
+  const [dateDay, setDateDay] = useState(today.getDate());
   const [tanggalLoading, setTanggalLoading] = useState(false);
   const [paymentStatusMap, setPaymentStatusMap] = useState<Record<string, 'lunas' | 'belum' | 'terlambat'>>({});
   const [paidCount, setPaidCount] = useState(0);
@@ -154,9 +165,8 @@ export function DetailGrupScreen({ navigation, route }: Props) {
     }
   }, [token, groupId, isOnline]);
 
-  useEffect(() => { load(); }, [load]);
-
-  // Auto-refresh saat kembali dari Bayar/Undian/Chat/Swap
+  // GAP-P1-1: hanya useFocusEffect — cover initial mount + setiap kembali ke screen
+  // Sebelumnya ada useEffect + useFocusEffect yang menyebabkan double-load (10 API calls) saat mount
   useFocusEffect(useCallback(() => { load(); }, [load]));
 
   const onRefresh = () => { setRefreshing(true); load(true); };
@@ -333,16 +343,14 @@ export function DetailGrupScreen({ navigation, route }: Props) {
 
   const handleTanggalSubmit = async () => {
     if (!token || !group?.current_period_id) return;
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(tanggalInput)) {
-      Alert.alert('Format Salah', 'Masukkan tanggal dengan format YYYY-MM-DD, contoh: 2026-06-15');
-      return;
-    }
+    const mm = String(dateMonth).padStart(2, '0');
+    const dd = String(dateDay).padStart(2, '0');
+    const dateStr = `${dateYear}-${mm}-${dd}`;
     setTanggalLoading(true);
     try {
-      await setTanggalPelaksanaan(token, groupId, group.current_period_id, tanggalInput);
+      await setTanggalPelaksanaan(token, groupId, group.current_period_id, dateStr);
       setShowTanggalModal(false);
-      setTanggalInput('');
-      Alert.alert('Berhasil', `Tanggal pelaksanaan diset ke ${tanggalInput}`);
+      Alert.alert('Berhasil', `Tanggal pelaksanaan diset ke ${dateStr}`);
       load();
     } catch (e: any) {
       Alert.alert('Gagal', e.message ?? 'Gagal mengatur tanggal.');
@@ -376,8 +384,8 @@ export function DetailGrupScreen({ navigation, route }: Props) {
 
   // Pemenang periode ini (untuk Mode 2: winner bisa set tanggal)
   const isWinner = !!user && !!currentWinnerId && user.id === currentWinnerId && !isKetua;
-  // Prompt tanggal untuk pemenang: tampil jika Mode 2, user adalah pemenang, tanggal belum diset
-  const showWinnerTanggalPrompt = isWinner && !currentPeriodDue && group?.draw_mode === 'random';
+  // GAP-P3-3: cek currentExecutionDate bukan currentPeriodDue — due_date selalu ada, execution_date belum tentu
+  const showWinnerTanggalPrompt = isWinner && !currentExecutionDate && group?.draw_mode === 'random' && group?.status === 'active';
 
   const activityRows = useMemo(() => recentActivity.map((a) => {
     if (!a.created_at) return { ...a, when: '' };
@@ -494,11 +502,17 @@ export function DetailGrupScreen({ navigation, route }: Props) {
         <Card accent tint pad={18} style={styles.statusCard}>
           <View style={styles.statusTop}>
             <View>
-              <Text style={styles.periodeLabel}>PERIODE {group?.current_period ?? 1} DARI {group?.total_periods ?? 12}</Text>
+              {group?.status === 'completed' ? (
+                <Text style={styles.periodeLabel}>ARISAN SELESAI · {group.total_periods} PERIODE</Text>
+              ) : (
+                <Text style={styles.periodeLabel}>PERIODE {group?.current_period ?? 1} DARI {group?.total_periods ?? 12}</Text>
+              )}
               <View style={styles.winnerRow}>
                 <Icon name="trophy" size={18} color={Colors.primaryInk} />
                 <Text style={styles.winnerText}>
-                  {currentWinnerName ? `Pemenang: ${currentWinnerName}` : 'Belum ada pemenang'}
+                  {group?.status === 'completed' && hasAnyWinner
+                    ? `${currentWinnerName ? `Terakhir menang: ${currentWinnerName}` : `${group.total_periods} pemenang tersimpan`}`
+                    : currentWinnerName ? `Pemenang: ${currentWinnerName}` : 'Belum ada pemenang'}
                 </Text>
               </View>
             </View>
@@ -536,7 +550,7 @@ export function DetailGrupScreen({ navigation, route }: Props) {
             </View>
             <Btn
               full size="md" variant="outline" icon="calendar"
-              onPress={() => { setTanggalInput(''); setShowTanggalModal(true); }}
+              onPress={() => { const t = new Date(); setDateYear(t.getFullYear()); setDateMonth(t.getMonth()+1); setDateDay(t.getDate()); setShowTanggalModal(true); }}
               disabled={!isOnline}
               style={styles.winnerPromptBtn}
             >
@@ -551,15 +565,20 @@ export function DetailGrupScreen({ navigation, route }: Props) {
             const isUndian = a.screen === 'UndianPre';
             const isTukar = a.screen === 'RequestSwap';
             const isBayar = a.screen === 'Bayar';
+            const isChat = a.screen === 'Chat';
 
             const myPaymentStatus = paymentStatusMap[user?.id ?? ''];
             const alreadyPaid = myPaymentStatus === 'lunas';
 
+            // Grup selesai/dibubarkan: hanya Chat yang masih bisa
+            const groupInactive = group?.status === 'completed' || group?.status === 'disbanded';
+
             const isDisabled =
+              (!isChat && groupInactive) ||
               (isBayar && (!isOnline || !group?.current_period_id || alreadyPaid)) ||
               (isUndian && (!isOnline || undianButtonDisabled)) ||
               (isTukar && (!isOnline || !tukarEnabled)) ||
-              (!isUndian && !isTukar && !isBayar && !isOnline && 'primary' in a && (a as any).primary);
+              (!isUndian && !isTukar && !isBayar && !isOnline && !!a.primary);
 
             return (
               <TouchableOpacity
@@ -601,7 +620,7 @@ export function DetailGrupScreen({ navigation, route }: Props) {
                 }}
                 style={[
                   styles.quickBtn,
-                  'primary' in a && (a as any).primary && styles.quickBtnPrimary,
+                  !!a.primary && styles.quickBtnPrimary,
                   isDisabled && styles.quickBtnDisabled,
                 ]}
                 disabled={isDisabled}
@@ -609,15 +628,15 @@ export function DetailGrupScreen({ navigation, route }: Props) {
                 <Icon
                   name={a.icon}
                   size={22}
-                  color={isDisabled ? Colors.muted : ('primary' in a && (a as any).primary ? Colors.white : Colors.ink)}
+                  color={isDisabled ? Colors.muted : (a.primary ? Colors.white : Colors.ink)}
                   strokeWidth={2}
                 />
                 <Text style={[
                   styles.quickLabel,
-                  'primary' in a && (a as any).primary && styles.quickLabelPrimary,
+                  !!a.primary && styles.quickLabelPrimary,
                   isDisabled && styles.quickLabelDisabled,
                 ]}>
-                  {isBayar && alreadyPaid ? 'Lunas ✓' : a.label}
+                  {isBayar && alreadyPaid && !groupInactive ? 'Lunas ✓' : a.label}
                 </Text>
               </TouchableOpacity>
             );
@@ -636,39 +655,45 @@ export function DetailGrupScreen({ navigation, route }: Props) {
           </View>
         )}
 
-        {/* Ketua Actions — icon-tile card */}
-        {isKetua && (
+        {/* Ketua Actions — icon-tile card — disembunyikan saat arisan completed */}
+        {isKetua && group?.status !== 'completed' && (
           <Card style={styles.ketuaCard}>
             <Text style={styles.ketuaCardTitle}>Kelola Grup</Text>
 
             {/* Icon tile grid — aksi umum */}
             <View style={styles.ketuaTileRow}>
-              <TouchableOpacity
-                style={[styles.ketuaTile, (!isOnline || actionLoading) && styles.ketuaTileDisabled]}
-                onPress={() => navigation.navigate('SetGiliran', { groupId, members: members.map(m => ({ id: m.user_id, name: m.user.name ?? m.user.phone, slot_order: m.slot_order })), isLocked: group?.status === 'active' || group?.status === 'completed' })}
-                disabled={!isOnline || actionLoading}
-              >
-                <View style={styles.ketuaTileIcon}>
-                  <Icon name="users" size={20} color={Colors.primaryInk} strokeWidth={2} />
-                </View>
-                <Text style={styles.ketuaTileLabel}>Set{'\n'}Giliran</Text>
-              </TouchableOpacity>
+              {/* Set Giliran: hanya sebelum active (recruiting) */}
+              {group?.status === 'recruiting' && (
+                <TouchableOpacity
+                  style={[styles.ketuaTile, (!isOnline || actionLoading) && styles.ketuaTileDisabled]}
+                  onPress={() => navigation.navigate('SetGiliran', { groupId, members: members.map(m => ({ id: m.user_id, name: m.user.name ?? m.user.phone, slot_order: m.slot_order })), isLocked: false })}
+                  disabled={!isOnline || actionLoading}
+                >
+                  <View style={styles.ketuaTileIcon}>
+                    <Icon name="users" size={20} color={Colors.primaryInk} strokeWidth={2} />
+                  </View>
+                  <Text style={styles.ketuaTileLabel}>Set{'\n'}Giliran</Text>
+                </TouchableOpacity>
+              )}
 
-              <TouchableOpacity
-                style={[styles.ketuaTile, (!isOnline || actionLoading) && styles.ketuaTileDisabled]}
-                onPress={handleGenerateInvite}
-                disabled={!isOnline || actionLoading}
-              >
-                <View style={styles.ketuaTileIcon}>
-                  <Icon name="share" size={20} color={Colors.primaryInk} strokeWidth={2} />
-                </View>
-                <Text style={styles.ketuaTileLabel}>Kode{'\n'}Invite</Text>
-              </TouchableOpacity>
+              {/* Kode Invite: hanya saat recruiting */}
+              {group?.status === 'recruiting' && (
+                <TouchableOpacity
+                  style={[styles.ketuaTile, (!isOnline || actionLoading) && styles.ketuaTileDisabled]}
+                  onPress={handleGenerateInvite}
+                  disabled={!isOnline || actionLoading}
+                >
+                  <View style={styles.ketuaTileIcon}>
+                    <Icon name="share" size={20} color={Colors.primaryInk} strokeWidth={2} />
+                  </View>
+                  <Text style={styles.ketuaTileLabel}>Kode{'\n'}Invite</Text>
+                </TouchableOpacity>
+              )}
 
               {group?.status === 'active' && group?.current_period_id && (
                 <TouchableOpacity
                   style={[styles.ketuaTile, (!isOnline || actionLoading) && styles.ketuaTileDisabled]}
-                  onPress={() => { setTanggalInput(''); setShowTanggalModal(true); }}
+                  onPress={() => { const t = new Date(); setDateYear(t.getFullYear()); setDateMonth(t.getMonth()+1); setDateDay(t.getDate()); setShowTanggalModal(true); }}
                   disabled={!isOnline || actionLoading}
                 >
                   <View style={styles.ketuaTileIcon}>
@@ -692,20 +717,23 @@ export function DetailGrupScreen({ navigation, route }: Props) {
               )}
             </View>
 
-            {/* List rows — aksi kontekstual */}
-            <View style={styles.ketuaRowDivider} />
-
-            <TouchableOpacity
-              style={[styles.ketuaRow, !isOnline && styles.ketuaRowDisabled]}
-              onPress={() => navigation.navigate('SwapApproval', { groupId, groupName })}
-              disabled={!isOnline}
-            >
-              <View style={[styles.ketuaRowIcon, { backgroundColor: '#EAF2FF' }]}>
-                <Icon name="checkCircle" size={18} color="#2D6FD6" strokeWidth={2} />
-              </View>
-              <Text style={styles.ketuaRowLabel}>Approval Tukar Giliran</Text>
-              <Icon name="chevronRight" size={16} color={Colors.muted} strokeWidth={2} />
-            </TouchableOpacity>
+            {/* List rows — aksi kontekstual (hanya saat active) */}
+            {group?.status === 'active' && (
+              <>
+                <View style={styles.ketuaRowDivider} />
+                <TouchableOpacity
+                  style={[styles.ketuaRow, !isOnline && styles.ketuaRowDisabled]}
+                  onPress={() => navigation.navigate('SwapApproval', { groupId, groupName })}
+                  disabled={!isOnline}
+                >
+                  <View style={[styles.ketuaRowIcon, { backgroundColor: '#EAF2FF' }]}>
+                    <Icon name="checkCircle" size={18} color="#2D6FD6" strokeWidth={2} />
+                  </View>
+                  <Text style={styles.ketuaRowLabel}>Approval Tukar Giliran</Text>
+                  <Icon name="chevronRight" size={16} color={Colors.muted} strokeWidth={2} />
+                </TouchableOpacity>
+              </>
+            )}
 
             {/* Tutup Periode — hanya saat active dan undian sudah selesai */}
             {group?.status === 'active' && group?.current_period_id && currentPeriodUndianDone && (
@@ -747,24 +775,28 @@ export function DetailGrupScreen({ navigation, route }: Props) {
               </>
             )}
 
-            {/* Danger zone */}
-            <View style={styles.ketuaRowDivider} />
-            <TouchableOpacity
-              style={[styles.ketuaRow, (!isOnline || actionLoading) && styles.ketuaRowDisabled]}
-              onPress={handleDisband}
-              disabled={!isOnline || actionLoading}
-            >
-              <View style={[styles.ketuaRowIcon, { backgroundColor: Colors.dangerTint }]}>
-                <Icon name="alert" size={18} color={Colors.danger} strokeWidth={2} />
-              </View>
-              <Text style={[styles.ketuaRowLabel, { color: Colors.danger }]}>Bubarkan Grup</Text>
-              <Icon name="chevronRight" size={16} color={Colors.danger} strokeWidth={2} />
-            </TouchableOpacity>
+            {/* Bubarkan Grup — hanya saat recruiting (completed = arisan selesai, bukan dibubarkan) */}
+            {group?.status === 'recruiting' && (
+              <>
+                <View style={styles.ketuaRowDivider} />
+                <TouchableOpacity
+                  style={[styles.ketuaRow, (!isOnline || actionLoading) && styles.ketuaRowDisabled]}
+                  onPress={handleDisband}
+                  disabled={!isOnline || actionLoading}
+                >
+                  <View style={[styles.ketuaRowIcon, { backgroundColor: Colors.dangerTint }]}>
+                    <Icon name="alert" size={18} color={Colors.danger} strokeWidth={2} />
+                  </View>
+                  <Text style={[styles.ketuaRowLabel, { color: Colors.danger }]}>Bubarkan Grup</Text>
+                  <Icon name="chevronRight" size={16} color={Colors.danger} strokeWidth={2} />
+                </TouchableOpacity>
+              </>
+            )}
           </Card>
         )}
 
-        {/* Anggota Action */}
-        {!isKetua && group && (
+        {/* Anggota Action — hanya saat masih recruiting (aktif = tidak bisa keluar, selesai = tidak relevan) */}
+        {!isKetua && group?.status === 'recruiting' && (
           <Btn
             full size="md" variant="outline"
             onPress={handleLeave}
@@ -791,7 +823,9 @@ export function DetailGrupScreen({ navigation, route }: Props) {
         {/* Member Status */}
         <View style={styles.section}>
           <SectionLabel>
-            Status bayar periode {group?.current_period ?? 1}
+            {group?.status === 'completed'
+              ? 'Riwayat Pembayaran'
+              : `Status bayar periode ${group?.current_period ?? 1}`}
           </SectionLabel>
           {/* Action pills — Buku Kas / Riwayat / Kelola */}
           <View style={styles.paymentPillRow}>
@@ -874,36 +908,71 @@ export function DetailGrupScreen({ navigation, route }: Props) {
         </View>
       </ScrollView>
 
-      {/* Modal Atur Tanggal Pelaksanaan */}
+      {/* Modal Atur Tanggal Pelaksanaan — stepper date picker, no extra dependency */}
       <Modal visible={showTanggalModal} transparent animationType="fade" onRequestClose={() => setShowTanggalModal(false)}>
-        <KeyboardAvoidingView style={styles.modalOverlay} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+        <View style={styles.modalOverlay}>
           <View style={styles.modalBox}>
             <Text style={styles.modalTitle}>Atur Tanggal Pelaksanaan</Text>
-            <Text style={styles.modalSub}>Format: YYYY-MM-DD (contoh: 2026-06-15)</Text>
-            <TextInput
-              style={styles.modalInput}
-              value={tanggalInput}
-              onChangeText={setTanggalInput}
-              placeholder="2026-06-15"
-              placeholderTextColor={Colors.muted}
-              keyboardType="default"
-              maxLength={10}
-              autoFocus
-            />
+            <Text style={styles.modalSub}>
+              Dipilih: {String(dateDay).padStart(2,'0')}/{String(dateMonth).padStart(2,'0')}/{dateYear}
+            </Text>
+
+            {/* Year stepper */}
+            <View style={styles.dateRow}>
+              <Text style={styles.dateLabel}>Tahun</Text>
+              <View style={styles.dateStepper}>
+                <TouchableOpacity onPress={() => setDateYear((y) => Math.max(today.getFullYear(), y - 1))} style={styles.dateBtn}>
+                  <Text style={styles.dateBtnText}>−</Text>
+                </TouchableOpacity>
+                <Text style={styles.dateVal}>{dateYear}</Text>
+                <TouchableOpacity onPress={() => setDateYear((y) => Math.min(today.getFullYear() + 5, y + 1))} style={[styles.dateBtn, styles.dateBtnPlus]}>
+                  <Text style={[styles.dateBtnText, { color: Colors.white }]}>+</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            {/* Month stepper */}
+            <View style={styles.dateRow}>
+              <Text style={styles.dateLabel}>Bulan</Text>
+              <View style={styles.dateStepper}>
+                <TouchableOpacity onPress={() => setDateMonth((m) => Math.max(1, m - 1))} style={styles.dateBtn}>
+                  <Text style={styles.dateBtnText}>−</Text>
+                </TouchableOpacity>
+                <Text style={styles.dateVal}>{String(dateMonth).padStart(2, '0')}</Text>
+                <TouchableOpacity onPress={() => setDateMonth((m) => Math.min(12, m + 1))} style={[styles.dateBtn, styles.dateBtnPlus]}>
+                  <Text style={[styles.dateBtnText, { color: Colors.white }]}>+</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            {/* Day stepper */}
+            <View style={styles.dateRow}>
+              <Text style={styles.dateLabel}>Tanggal</Text>
+              <View style={styles.dateStepper}>
+                <TouchableOpacity onPress={() => setDateDay((d) => Math.max(1, d - 1))} style={styles.dateBtn}>
+                  <Text style={styles.dateBtnText}>−</Text>
+                </TouchableOpacity>
+                <Text style={styles.dateVal}>{String(dateDay).padStart(2, '0')}</Text>
+                <TouchableOpacity onPress={() => setDateDay((d) => Math.min(31, d + 1))} style={[styles.dateBtn, styles.dateBtnPlus]}>
+                  <Text style={[styles.dateBtnText, { color: Colors.white }]}>+</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+
             <View style={styles.modalActions}>
               <TouchableOpacity onPress={() => setShowTanggalModal(false)} style={styles.modalCancelBtn}>
                 <Text style={styles.modalCancelLabel}>Batal</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 onPress={handleTanggalSubmit}
-                disabled={tanggalLoading || !tanggalInput}
-                style={[styles.modalConfirmBtn, (tanggalLoading || !tanggalInput) && styles.modalConfirmBtnDisabled]}
+                disabled={tanggalLoading}
+                style={[styles.modalConfirmBtn, tanggalLoading && styles.modalConfirmBtnDisabled]}
               >
                 <Text style={styles.modalConfirmLabel}>{tanggalLoading ? 'Menyimpan...' : 'Simpan'}</Text>
               </TouchableOpacity>
             </View>
           </View>
-        </KeyboardAvoidingView>
+        </View>
       </Modal>
     </SafeAreaView>
   );
@@ -994,7 +1063,14 @@ const styles = StyleSheet.create({
   modalTitle: { fontFamily: Fonts.displaySemiBold, fontSize: 17, color: Colors.ink, fontWeight: '600', marginBottom: 4 },
   modalSub: { fontFamily: Fonts.bodyRegular, fontSize: 13, color: Colors.muted, marginBottom: 16 },
   modalInput: { height: 48, borderWidth: 1.5, borderRadius: 8, borderColor: Colors.border, paddingHorizontal: 14, fontFamily: Fonts.bodyRegular, fontSize: 15, color: Colors.ink, marginBottom: 20 },
-  modalActions: { flexDirection: 'row', gap: 10 },
+  dateRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
+  dateLabel: { fontFamily: Fonts.bodySemiBold, fontSize: 14, color: Colors.ink, fontWeight: '600', width: 60 },
+  dateStepper: { flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1, justifyContent: 'flex-end' },
+  dateBtn: { width: 40, height: 40, borderRadius: 10, borderWidth: 1.5, borderColor: Colors.border, backgroundColor: Colors.card, alignItems: 'center', justifyContent: 'center' },
+  dateBtnPlus: { backgroundColor: Colors.primary, borderWidth: 0 },
+  dateBtnText: { fontSize: 20, color: Colors.ink, fontFamily: Fonts.displaySemiBold, fontWeight: '600' },
+  dateVal: { fontFamily: Fonts.displaySemiBold, fontSize: 18, color: Colors.ink, fontWeight: '600', minWidth: 48, textAlign: 'center' },
+  modalActions: { flexDirection: 'row', gap: 10, marginTop: 8 },
   modalCancelBtn: { flex: 1, height: 46, borderRadius: 10, borderWidth: 1.5, borderColor: Colors.border, alignItems: 'center', justifyContent: 'center' },
   modalCancelLabel: { fontFamily: Fonts.bodySemiBold, fontSize: 14, color: Colors.ink, fontWeight: '600' },
   modalConfirmBtn: { flex: 1, height: 46, borderRadius: 10, backgroundColor: Colors.primary, alignItems: 'center', justifyContent: 'center' },

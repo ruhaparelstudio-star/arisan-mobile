@@ -14,6 +14,8 @@ import { SkeletonBar } from '../../components/ui/SkeletonBar';
 import { useAuth } from '../../hooks/useAuth';
 import { useNetworkStatus } from '../../hooks/useNetworkStatus';
 import { getBukuArisan, getHutangInfo, resolveKabur, BukuArisan, BukuPeriod, HutangInfo } from '../../api/groups';
+import { cache, CACHE_KEYS } from '../../utils/cache';
+import { StateView } from '../../components/ui/StateView';
 
 type Props = NativeStackScreenProps<AppStackParamList, 'BukuArisan'>;
 
@@ -179,17 +181,44 @@ export function BukuArisanScreen({ navigation, route }: Props) {
   const [resolvingId, setResolvingId] = useState<string | null>(null);
 
   const load = useCallback(async (isRefresh = false) => {
-    if (!token || !isOnline) { setLoading(false); return; }
+    if (!token) { setLoading(false); return; }
+
+    // GAP-P1-3 + GAP-P3-2: coba cache dulu, lalu fetch jika online
+    if (!isOnline) {
+      const cached = await cache.get<{ buku: BukuArisan; hutang: HutangInfo | null }>(CACHE_KEYS.bukuArisan(groupId));
+      if (cached) {
+        setData(cached.data.buku);
+        setHutang(cached.data.hutang);
+        setError(null);
+      } else {
+        setError('Butuh koneksi internet untuk memuat Buku Kas Arisan.');
+      }
+      setLoading(false);
+      return;
+    }
+
     try {
       const [buku, hutangData] = await Promise.allSettled([
         getBukuArisan(token, groupId),
         getHutangInfo(token, groupId),
       ]);
-      if (buku.status === 'fulfilled') setData(buku.value);
-      if (hutangData.status === 'fulfilled') setHutang(hutangData.value);
+      const bukuVal = buku.status === 'fulfilled' ? buku.value : null;
+      const hutangVal = hutangData.status === 'fulfilled' ? hutangData.value : null;
+      if (bukuVal) setData(bukuVal);
+      if (hutangVal !== null) setHutang(hutangVal);
+      // Simpan ke cache untuk akses offline
+      if (bukuVal) await cache.set(CACHE_KEYS.bukuArisan(groupId), { buku: bukuVal, hutang: hutangVal });
       setError(null);
     } catch (e: any) {
-      setError(e.message ?? 'Gagal memuat buku kas.');
+      // Fallback ke cache jika fetch gagal
+      const cached = await cache.get<{ buku: BukuArisan; hutang: HutangInfo | null }>(CACHE_KEYS.bukuArisan(groupId));
+      if (cached) {
+        setData(cached.data.buku);
+        setHutang(cached.data.hutang);
+        setError(null);
+      } else {
+        setError(e.message ?? 'Gagal memuat buku kas.');
+      }
     } finally {
       setLoading(false);
       if (isRefresh) setRefreshing(false);
@@ -263,12 +292,14 @@ export function BukuArisanScreen({ navigation, route }: Props) {
           ))}
         </ScrollView>
       ) : error ? (
-        <View style={styles.center}>
-          <Text style={styles.errorText}>{error}</Text>
-          <TouchableOpacity onPress={() => load()} style={styles.retryBtn}>
-            <Text style={styles.retryText}>Coba Lagi</Text>
-          </TouchableOpacity>
-        </View>
+        <StateView
+          icon="fileText"
+          tone="danger"
+          title="Tidak Dapat Memuat"
+          body={error}
+          primary={isOnline ? 'Coba Lagi' : undefined}
+          onPrimary={isOnline ? () => { setLoading(true); load(); } : undefined}
+        />
       ) : (
         <ScrollView
           contentContainerStyle={styles.body}

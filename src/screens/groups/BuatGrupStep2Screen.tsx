@@ -71,6 +71,7 @@ export function BuatGrupStep2Screen({ navigation, route }: Props) {
             <TouchableOpacity
               onPress={() => setPeriods((p) => Math.max(2, p - 1))}
               style={styles.stepBtn}
+              testID="btn_period_dec"
             >
               <Text style={styles.stepBtnText}>−</Text>
             </TouchableOpacity>
@@ -80,6 +81,7 @@ export function BuatGrupStep2Screen({ navigation, route }: Props) {
             <TouchableOpacity
               onPress={() => setPeriods((p) => Math.min(60, p + 1))}
               style={[styles.stepBtn, styles.stepBtnPlus]}
+              testID="btn_period_inc"
             >
               <Icon name="plus" size={22} color={Colors.white} strokeWidth={2.4} />
             </TouchableOpacity>

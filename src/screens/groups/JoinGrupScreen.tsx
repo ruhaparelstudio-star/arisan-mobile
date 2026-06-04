@@ -17,7 +17,7 @@ export function JoinGrupScreen({ navigation }: Props) {
 
   const handleSearch = () => {
     if (code.length < 8) return;
-    (navigation as any).navigate('JoinConfirm', { code: code.toUpperCase() });
+    navigation.navigate('JoinConfirm', { code: code.toUpperCase() });
   };
 
   return (
@@ -30,7 +30,7 @@ export function JoinGrupScreen({ navigation }: Props) {
             <Text style={styles.sub}>Minta kode ke ketua grup, lalu masukkan di sini.</Text>
 
             <View style={styles.otpWrap}>
-              <OtpBoxes value={code} onChange={setCode} alphanumeric length={8} />
+              <OtpBoxes value={code} onChange={setCode} alphanumeric length={8} testID="join_code" />
             </View>
 
             <View style={styles.divider}>

@@ -48,8 +48,10 @@ function mapResendError(e: unknown): string {
 }
 
 const MAX_FAILS_BEFORE_SUPPORT = 3;
-const SUPPORT_WA_NUM = process.env.EXPO_PUBLIC_SUPPORT_WA ?? '6281234567890';
-const SUPPORT_WA = `https://wa.me/${SUPPORT_WA_NUM}?text=Halo%2C+saya+butuh+bantuan+verifikasi+akun+Arisan+App.`;
+const SUPPORT_WA_NUM = process.env.EXPO_PUBLIC_SUPPORT_WA ?? '';
+const SUPPORT_WA = SUPPORT_WA_NUM
+  ? `https://wa.me/${SUPPORT_WA_NUM}?text=Halo%2C+saya+butuh+bantuan+verifikasi+akun+Arisan+App.`
+  : '';
 
 export function OTPVerifyScreen({ navigation, route }: Props) {
   const { phone } = route.params;
@@ -177,9 +179,13 @@ export function OTPVerifyScreen({ navigation, route }: Props) {
                   <Text style={styles.supportText}>
                     Sudah {failCount}× gagal. Butuh bantuan?{' '}
                   </Text>
-                  <Text style={styles.supportLink} onPress={() => { const { Linking } = require('react-native'); Linking.openURL(SUPPORT_WA); }}>
-                    Hubungi dukungan via WhatsApp →
-                  </Text>
+                  {SUPPORT_WA ? (
+                    <Text style={styles.supportLink} onPress={() => { const { Linking } = require('react-native'); Linking.openURL(SUPPORT_WA); }}>
+                      Hubungi dukungan via WhatsApp →
+                    </Text>
+                  ) : (
+                    <Text style={styles.supportText}>Hubungi admin arisan kamu untuk bantuan.</Text>
+                  )}
                 </View>
               </View>
             ) : (

@@ -1,4 +1,5 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import {
   View,
   Text,
@@ -20,6 +21,7 @@ import { StateView } from '../../components/ui/StateView';
 import { Btn } from '../../components/ui/Button';
 import { useAuth } from '../../hooks/useAuth';
 import { getNotifications, markAllRead, markRead, Notification } from '../../api/notifications';
+import { triggerUnreadRefresh } from '../../hooks/useUnreadCount';
 
 const CTA_MAP: Record<string, string> = {
   payment_due: 'Bayar',
@@ -85,7 +87,8 @@ export function NotificationsScreen({ navigation }: Props) {
     }
   }, [token]);
 
-  useEffect(() => { load(); }, [load]);
+  // Refresh saat screen difokus — menangkap notif baru yang masuk saat di screen lain
+  useFocusEffect(useCallback(() => { load(true); }, [load]));
 
   const handleRefresh = () => {
     setRefreshing(true);
@@ -96,12 +99,14 @@ export function NotificationsScreen({ navigation }: Props) {
     if (!token) return;
     await markAllRead(token).catch(() => {});
     setNotifs((prev) => prev.map((n) => ({ ...n, is_read: true })));
+    triggerUnreadRefresh();
   };
 
   const handleMarkOne = async (id: string) => {
     if (!token) return;
     await markRead(token, id).catch(() => {});
     setNotifs((prev) => prev.map((n) => n.id === id ? { ...n, is_read: true } : n));
+    triggerUnreadRefresh();
   };
 
   const unread = notifs.filter((n) => !n.is_read);

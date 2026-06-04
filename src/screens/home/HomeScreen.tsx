@@ -78,6 +78,12 @@ export function HomeScreen({ navigation }: Props) {
         if (cached) {
           setGroups(cached.data);
           setLastUpdated(new Date());
+          // GAP-P2-1: jika data stale dan online, refresh di background
+          if (cached.isStale && isOnline && token) {
+            getMyGroups(token)
+              .then((fresh) => { setGroups(fresh); setLastUpdated(new Date()); cache.set(CACHE_KEYS.GROUPS_LIST, fresh); })
+              .catch(() => {});
+          }
         }
       }
     } catch {
@@ -92,9 +98,8 @@ export function HomeScreen({ navigation }: Props) {
     }
   }, [token, isOnline]);
 
-  useEffect(() => { loadGroups(); }, [loadGroups]);
-
-  // Reload groups whenever screen comes into focus (e.g. after creating/joining a group)
+  // NEW-P1-1: hanya useFocusEffect — cover initial mount + setiap kembali ke screen
+  // Sebelumnya ada useEffect + useFocusEffect yang menyebabkan double-load saat mount
   useFocusEffect(useCallback(() => { loadGroups(); }, [loadGroups]));
 
   useEffect(() => {
@@ -132,13 +137,14 @@ export function HomeScreen({ navigation }: Props) {
         'Kamu perlu mengisi nama sebelum membuat atau bergabung ke grup arisan.',
         [
           { text: 'Batal', style: 'cancel' },
-          { text: 'Isi Nama', onPress: () => (navigation as any).navigate('Profil') },
+          { text: 'Isi Nama', onPress: () => navigation.navigate('Profil') },
         ],
       );
     }
   }, [user?.name, navigation]);
 
   const urgentGroup = useMemo(() => groups.find((g) => g.status === 'active') ?? null, [groups]);
+  const otherActiveCount = useMemo(() => Math.max(0, groups.filter((g) => g.status === 'active').length - 1), [groups]);
 
   if (loading) {
     return (
@@ -174,7 +180,7 @@ export function HomeScreen({ navigation }: Props) {
         title="Beranda"
         right={
           <TouchableOpacity
-            onPress={() => navigation.navigate('Notifikasi' as any)}
+            onPress={() => navigation.navigate('Notifikasi')}
             style={styles.bellBtn}
           >
             <Icon name="bell" size={21} color={Colors.ink} />
@@ -239,6 +245,12 @@ export function HomeScreen({ navigation }: Props) {
                     </Btn>
                   )}
                 </View>
+                {/* GAP-P2-6: info jika ada grup aktif lain */}
+                {otherActiveCount > 0 && (
+                  <Text style={styles.heroOtherActive}>
+                    +{otherActiveCount} grup aktif lainnya — lihat di tab Grup
+                  </Text>
+                )}
               </View>
             )}
 
@@ -247,7 +259,7 @@ export function HomeScreen({ navigation }: Props) {
                 right={
                   <Text
                     style={styles.seeAll}
-                    onPress={() => navigation.navigate('Grup' as any)}
+                    onPress={() => navigation.navigate('Grup')}
                   >
                     Lihat semua
                   </Text>
@@ -350,6 +362,7 @@ const styles = StyleSheet.create({
   ctaRow: { flexDirection: 'row', gap: 10, marginTop: 2 },
   offlineHint: { fontFamily: Fonts.bodyRegular, fontSize: 12, color: Colors.muted, textAlign: 'center', marginTop: 8 },
   staleLabel: { fontFamily: Fonts.bodyRegular, fontSize: 11.5, color: Colors.muted, textAlign: 'center', marginTop: 4 },
+  heroOtherActive: { fontFamily: Fonts.bodyRegular, fontSize: 11.5, color: 'rgba(255,255,255,0.75)', marginTop: 10, textAlign: 'center' },
   emptyWrap: { alignItems: 'center', paddingTop: 60, paddingBottom: 32 },
   emptyIcon: { width: 96, height: 96, borderRadius: 48, backgroundColor: Colors.primaryTint, alignItems: 'center', justifyContent: 'center', marginBottom: 24 },
   emptyTitle: { fontFamily: Fonts.displayBold, fontSize: 23, color: Colors.ink, letterSpacing: -0.4, fontWeight: '700', textAlign: 'center', marginBottom: 10 },

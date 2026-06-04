@@ -40,7 +40,7 @@ export interface Period {
   group_id: string;
   period_number: number;   // dari periode_ke
   due_date: string;        // dari jatuh_tempo
-  status: 'upcoming' | 'active' | 'closed';  // backend: upcoming|active|completed → mobile: upcoming|active|closed
+  status: 'upcoming' | 'active' | 'closed';  // backend period: upcoming|active|closed (groups pakai completed)
   execution_date?: string | null;  // dari tanggal_pelaksanaan, bisa null jika belum diset
 }
 

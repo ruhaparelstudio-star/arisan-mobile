@@ -21,6 +21,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { RootNavigator } from './src/navigation/RootNavigator';
 import { AuthProvider } from './src/context/AuthContext';
+import { ErrorBoundary } from './src/components/ErrorBoundary';
 import { Colors } from './src/theme/colors';
 
 SplashScreen.preventAutoHideAsync();
@@ -119,12 +120,14 @@ export default function App() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
     <SafeAreaProvider>
-      <AuthProvider>
-        <View style={{ flex: 1, backgroundColor: Colors.bg }} onLayout={onLayoutRootView}>
-          <StatusBar style="dark" />
-          <RootNavigator />
-        </View>
-      </AuthProvider>
+      <ErrorBoundary>
+        <AuthProvider>
+          <View style={{ flex: 1, backgroundColor: Colors.bg }} onLayout={onLayoutRootView}>
+            <StatusBar style="dark" />
+            <RootNavigator />
+          </View>
+        </AuthProvider>
+      </ErrorBoundary>
     </SafeAreaProvider>
     </GestureHandlerRootView>
   );

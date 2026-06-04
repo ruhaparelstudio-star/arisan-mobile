@@ -40,11 +40,12 @@ export function usePaymentRealtime(periodId: string, initial: Payment[]): Paymen
             const idx = prev.findIndex((p) => p.user_id === raw.user_id);
             if (idx >= 0) {
               const next = [...prev];
-              // GAP-018: preserve user field — realtime tidak menyertakan JOIN ke users
+              // preserve user field — realtime tidak menyertakan JOIN ke users
               next[idx] = { ...raw, user: prev[idx].user };
               return next;
             }
-            return prev;
+            // INSERT untuk user baru — tambah dengan placeholder user (nama muncul setelah refresh)
+            return [...prev, { ...raw, user: { name: null, phone: raw.user_id } }];
           });
         },
       )

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
@@ -7,6 +7,7 @@ import { AppStackParamList, MainTabParamList } from './types';
 import { Colors } from '../theme/colors';
 import { Fonts } from '../theme/typography';
 import { Icon } from '../components/ui/Icon';
+import { useUnreadCount, registerUnreadRefresh } from '../hooks/useUnreadCount';
 
 import { HomeScreen } from '../screens/home/HomeScreen';
 import { GroupsScreen } from '../screens/groups/GroupsScreen';
@@ -46,6 +47,12 @@ const TABS = [
 
 function MainTabs() {
   const insets = useSafeAreaInsets();
+  const { unread, refresh } = useUnreadCount();
+  // Daftarkan refresh agar NotificationsScreen bisa trigger update badge langsung
+  useEffect(() => {
+    registerUnreadRefresh(refresh);
+    return () => registerUnreadRefresh(() => {});
+  }, [refresh]);
   return (
     <Tab.Navigator
       screenOptions={{ headerShown: false }}
@@ -53,6 +60,7 @@ function MainTabs() {
         <View style={[tabStyles.bar, { paddingBottom: Math.max(insets.bottom, 12) }]}>
           {TABS.map((t, i) => {
             const active = state.index === i;
+            const showBadge = t.key === 'Notifikasi' && unread > 0;
             return (
               <TouchableOpacity
                 key={t.key}
@@ -60,12 +68,19 @@ function MainTabs() {
                 style={tabStyles.tab}
                 activeOpacity={0.7}
               >
-                <Icon
-                  name={t.icon}
-                  size={24}
-                  color={active ? Colors.primary : Colors.muted}
-                  strokeWidth={active ? 2.2 : 1.8}
-                />
+                <View>
+                  <Icon
+                    name={t.icon}
+                    size={24}
+                    color={active ? Colors.primary : Colors.muted}
+                    strokeWidth={active ? 2.2 : 1.8}
+                  />
+                  {showBadge && (
+                    <View style={tabStyles.badge}>
+                      <Text style={tabStyles.badgeText}>{unread > 99 ? '99+' : unread}</Text>
+                    </View>
+                  )}
+                </View>
                 <Text style={[tabStyles.label, active && tabStyles.labelActive]}>
                   {t.label}
                 </Text>
@@ -137,6 +152,24 @@ const tabStyles = StyleSheet.create({
   labelActive: {
     fontFamily: Fonts.bodyBold,
     color: Colors.primary,
+    fontWeight: '700',
+  },
+  badge: {
+    position: 'absolute',
+    top: -4,
+    right: -6,
+    minWidth: 16,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: Colors.danger ?? '#E53E3E',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 3,
+  },
+  badgeText: {
+    fontFamily: Fonts.bodyBold,
+    fontSize: 9,
+    color: '#FFFFFF',
     fontWeight: '700',
   },
 });

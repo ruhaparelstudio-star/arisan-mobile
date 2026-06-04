@@ -21,5 +21,6 @@ export const CACHE_KEYS = {
   GROUPS_LIST: 'groups_list',
   groupDetail: (id: string) => `group_detail_${id}`,
   payments: (periodId: string) => `payments_${periodId}`,
+  bukuArisan: (id: string) => `buku_arisan_${id}`,
   notifications: 'notifications',
 };

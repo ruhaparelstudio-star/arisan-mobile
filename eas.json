@@ -15,7 +15,14 @@
       "distribution": "internal",
       "prebuildCommand": "npx expo prebuild --clean",
       "env": {
-        "APP_ENV": "development"
+        "APP_ENV": "production",
+        "EXPO_PUBLIC_APP_ENV": "production",
+        "EXPO_PUBLIC_API_URL": "https://arisan-api.vercel.app",
+        "EXPO_PUBLIC_SUPABASE_URL": "https://vqjfvbvmavwqapsznycp.supabase.co",
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZxamZ2YnZtYXZ3cWFwc3pueWNwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwNjUzMjIsImV4cCI6MjA5NTY0MTMyMn0.ikY-XQpYhpHcb2DAWGrixH1vCHm9fR3MjN4MgGKtIws",
+        "EXPO_PUBLIC_PRIVACY_POLICY_URL": "https://arisan.app/privacy",
+        "EXPO_PUBLIC_SUPPORT_WA": "6285692873673",
+        "EXPO_PUBLIC_PLAYSTORE_URL": "https://play.google.com/store/apps/details?id=com.ruhaparelstudio.arisan"
       },
       "android": {
         "buildType": "apk"
@@ -27,7 +34,14 @@
     "production": {
       "prebuildCommand": "npx expo prebuild --clean",
       "env": {
-        "APP_ENV": "production"
+        "APP_ENV": "production",
+        "EXPO_PUBLIC_APP_ENV": "production",
+        "EXPO_PUBLIC_API_URL": "https://arisan-api.vercel.app",
+        "EXPO_PUBLIC_SUPABASE_URL": "https://vqjfvbvmavwqapsznycp.supabase.co",
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZxamZ2YnZtYXZ3cWFwc3pueWNwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwNjUzMjIsImV4cCI6MjA5NTY0MTMyMn0.ikY-XQpYhpHcb2DAWGrixH1vCHm9fR3MjN4MgGKtIws",
+        "EXPO_PUBLIC_PRIVACY_POLICY_URL": "https://arisan.app/privacy",
+        "EXPO_PUBLIC_SUPPORT_WA": "6285692873673",
+        "EXPO_PUBLIC_PLAYSTORE_URL": "https://play.google.com/store/apps/details?id=com.ruhaparelstudio.arisan"
       },
       "android": {
         "buildType": "app-bundle"
